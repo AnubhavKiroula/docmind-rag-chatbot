@@ -1,0 +1,8 @@
+llama-index
+llama-index-vector-stores-qdrant
+llama-index-embeddings-huggingface
+qdrant-client
+sentence-transformers
+python-dotenv
+pypdf
+pytest
