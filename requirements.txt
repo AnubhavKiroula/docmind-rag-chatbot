@@ -11,3 +11,6 @@ uvicorn[standard]
 groq
 pydantic
 httpx
+streamlit
+sqlalchemy
+requests
