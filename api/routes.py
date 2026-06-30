@@ -1,8 +1,14 @@
 import uuid
 import datetime
-# We import Depends from FastAPI for database session dependency injection
-from fastapi import APIRouter, HTTPException, Depends
+import os
+import shutil
+# We import Depends, UploadFile, File from FastAPI for database session and file uploading
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from sqlalchemy.orm import Session
+
+# Project root paths for file saving
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(PROJECT_ROOT, "data", "sample")
 
 # We import our request and response schemas from models.py for data validation.
 from api.models import QueryRequest, QueryResponse, SourceChunk
@@ -171,3 +177,78 @@ async def get_history(conversation_id: str, db: Session = Depends(get_db)):
     GET endpoint to retrieve conversation logs (Legacy compatibility for older clients/tests).
     """
     return await get_conversation_history(conversation_id=conversation_id, db=db)
+
+@router.post("/ingest", summary="Upload and Ingest a PDF Document")
+async def ingest_endpoint(file: UploadFile = File(...)):
+    """
+    POST endpoint that accepts a PDF file upload, saves it to the ingestion folder,
+    and runs the parsing, chunking, and embedding ingestion pipeline programmatically.
+    """
+    # Verify file extension is PDF
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file format. Only PDF files are supported."
+        )
+        
+    # Ensure upload directory exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
+    # Save the file to the ingestion folder
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save uploaded file: {str(e)}"
+        )
+        
+    # Run the ingestion steps programmatically
+    try:
+        from ingestion.loader import load_documents
+        from ingestion.chunker import chunk_documents
+        from ingestion.embedder import get_embedding_model
+        from ingestion.store import build_vector_index
+        from config.settings import settings
+        
+        # 1. Load documents
+        documents = load_documents(UPLOAD_DIR)
+        if not documents:
+            raise ValueError("No documents found after processing upload.")
+            
+        # 2. Chunk documents
+        nodes = chunk_documents(documents, settings.chunk_size, settings.chunk_overlap)
+        
+        # 3. Load embedding model
+        embed_model = get_embedding_model(settings.embed_model)
+        
+        # 4. Build vector index and store in Qdrant
+        build_vector_index(
+            nodes=nodes, 
+            embed_model=embed_model, 
+            qdrant_url=settings.qdrant_url, 
+            collection_name=settings.qdrant_collection_name
+        )
+        
+        # Reload the retriever's index dynamically so it knows about the new document chunks
+        global retriever
+        from query.retriever import QdrantRetriever
+        retriever = QdrantRetriever()
+        
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "chunks_created": len(nodes),
+            "message": f"Successfully ingested '{file.filename}' and stored {len(nodes)} chunks in Qdrant."
+        }
+    except Exception as e:
+        # Clean up the file if ingestion failed
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ingestion pipeline failed: {str(e)}"
+        )
+

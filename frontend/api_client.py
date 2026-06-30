@@ -89,3 +89,33 @@ def get_conversation_history(conversation_id: str) -> Dict[str, Any]:
             "history": [],
             "error": f"Failed to retrieve conversation history: {str(e)}"
         }
+
+def upload_pdf(file_bytes: bytes, filename: str) -> Dict[str, Any]:
+    """
+    POSTs a raw PDF file as multipart/form-data to the FastAPI backend /ingest endpoint.
+    
+    Parameters:
+        file_bytes (bytes): The raw bytes of the uploaded PDF file.
+        filename (str): The name of the file.
+        
+    Returns:
+        Dict[str, Any]: JSON response status, chunk count, and message.
+    """
+    url = f"{BACKEND_URL}/ingest"
+    files = {"file": (filename, file_bytes, "application/pdf")}
+    
+    try:
+        response = requests.post(url, files=files, timeout=120.0)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.ConnectionError:
+        return {
+            "status": "error",
+            "message": "Connection Error: Unable to connect to the backend server to upload PDF."
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to ingest document: {str(e)}"
+        }
+

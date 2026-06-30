@@ -1,5 +1,5 @@
 import streamlit as st
-from api_client import send_query, get_conversation_history
+from api_client import send_query, get_conversation_history, upload_pdf
 
 # PAGE CONFIGURATION
 st.set_page_config(
@@ -54,13 +54,37 @@ if st.sidebar.button("➕ Start New Conversation", use_container_width=True):
 # This provides clear guidance for newcomers or developers to understand how to feed
 # files into the RAG system before querying, preventing 'no data found' confusion.
 st.sidebar.info(
-    "💡 **Add Documents**:\n"
-    "To ingest new PDF files:\n"
+    "💡 **Add Documents (CLI)**:\n"
     "1. Drop your `.pdf` documents into `data/sample/`.\n"
     "2. Run the ingestion pipeline:\n"
-    "   `python scripts/ingest.py`\n"
-    "3. Reload this page and start chatting!"
+    "   `python scripts/ingest.py`"
 )
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("📤 Upload PDF (Web)")
+
+uploaded_file = st.sidebar.file_uploader(
+    "Upload a PDF file to index it",
+    type=["pdf"],
+    help="Upload a new document to the RAG database to query its content immediately."
+)
+
+if uploaded_file is not None:
+    if st.sidebar.button("⚙️ Ingest Document", use_container_width=True):
+        with st.sidebar.status("Processing PDF...") as status:
+            file_bytes = uploaded_file.read()
+            filename = uploaded_file.name
+            
+            # Send file bytes and name to backend
+            res = upload_pdf(file_bytes, filename)
+            
+            if res.get("status") == "success":
+                status.update(label=f"Ingested: {res['filename']} ({res['chunks_created']} chunks)", state="complete")
+                st.sidebar.success(res["message"])
+            else:
+                status.update(label="Ingestion failed", state="error")
+                st.sidebar.error(res.get("message", "Unknown error occurred."))
+
 
 # RENDER CHAT HISTORY
 # Display all existing messages from session state
