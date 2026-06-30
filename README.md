@@ -93,8 +93,15 @@ In Phase 2, we built a retrieval-augmented query engine and exposed it via a RES
 ### Prerequisites
 - Docker Desktop installed and running.
 - Python 3.12+ installed.
-- Ollama running locally with `llama3.2` model installed (`ollama run llama3.2 "hi"`).
+- Ollama running locally.
 - Groq Cloud API Key (Optional fallback, from [console.groq.com](https://console.groq.com)).
+
+> [!IMPORTANT]
+> **Ollama Model Verification**: Before starting the backend, verify that you have downloaded the target local model by running:
+> ```bash
+> ollama list
+> ```
+> Confirm that `llama3.2` (or the model name configured in your `.env` as `LOCAL_LLM_MODEL`) is present in the list. This prevents runtime errors and avoids fallback issues if you have multiple local models installed.
 
 ### Installation & Run Steps
 
@@ -228,8 +235,20 @@ GROQ_API_KEY=gsk_...     # Optional cloud API key
 
 ---
 
+## Scaling & Production Considerations (Phase 3 & 4 Planning)
+To prepare the DocMind RAG Chatbot for production and scaling, the following middleware upgrades are planned:
+- **FastAPI Request Logging Middleware**: Standardized JSON logs for all incoming requests, response times, and processing durations using libraries like `structlog`.
+- **FastAPI Rate Limiting Middleware**: IP-based rate limiting (using Redis and `slowapi`) on the `POST /query` endpoint to prevent brute-forcing and resource starvation.
+- **Persistent Session Stores**: Swapping the in-memory chat dict with a PostgreSQL or Redis backend to persist conversation histories.
+
+---
+
 ## Running Tests
-Run the automated pytest test suite to verify code compliance and correctness:
+Run the automated pytest test suite to verify code compliance and correctness. **Note**: Make sure to activate the virtual environment (`venv`) before running tests so that packages and the local python path are correctly set up.
 ```bash
+# Activate environment first:
+# Windows: venv\Scripts\activate
+# Linux/macOS: source venv/bin/activate
+
 python -m pytest
 ```
