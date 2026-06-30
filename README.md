@@ -160,10 +160,15 @@ In Phase 2, we built a retrieval-augmented query engine and exposed it via a RES
 ### 1. Health Check
 - **Endpoint**: `GET /health`
 - **Description**: Returns 200 OK with server timestamp to verify operations.
-- **Example curl**:
-  ```bash
-  curl http://localhost:8000/health
-  ```
+- **Example Commands**:
+  - **Linux / macOS (Bash)**:
+    ```bash
+    curl http://localhost:8000/health
+    ```
+  - **Windows (PowerShell)**:
+    ```powershell
+    Invoke-RestMethod -Uri "http://localhost:8000/health"
+    ```
 - **Example Response**:
   ```json
   {
@@ -175,12 +180,17 @@ In Phase 2, we built a retrieval-augmented query engine and exposed it via a RES
 ### 2. Query PDF Index (RAG)
 - **Endpoint**: `POST /query`
 - **Description**: Submits a user query, fetches relevant chunks from Qdrant, synthesizes a cited response, logs to session history, and returns JSON.
-- **Example curl**:
-  ```bash
-  curl -X POST http://localhost:8000/query \
-    -H "Content-Type: application/json" \
-    -d "{\"query\": \"What is the main topic of the documents?\"}"
-  ```
+- **Example Commands**:
+  - **Linux / macOS (Bash)**:
+    ```bash
+    curl -X POST http://localhost:8000/query \
+      -H "Content-Type: application/json" \
+      -d '{"query": "What is the main topic of the documents?"}'
+    ```
+  - **Windows (PowerShell)**:
+    ```powershell
+    Invoke-RestMethod -Uri "http://localhost:8000/query" -Method Post -ContentType "application/json" -Body '{"query": "What is the main topic of the documents?"}'
+    ```
 - **Example Response**:
   ```json
   {
@@ -203,10 +213,15 @@ In Phase 2, we built a retrieval-augmented query engine and exposed it via a RES
 ### 3. Get Conversation History
 - **Endpoint**: `GET /history/{conversation_id}`
 - **Description**: Retrieves history logs for a specific session.
-- **Example curl**:
-  ```bash
-  curl http://localhost:8000/history/31e845c4-7221-4f13-bb17-802f067d26da
-  ```
+- **Example Commands**:
+  - **Linux / macOS (Bash)**:
+    ```bash
+    curl http://localhost:8000/history/31e845c4-7221-4f13-bb17-802f067d26da
+    ```
+  - **Windows (PowerShell)**:
+    ```powershell
+    Invoke-RestMethod -Uri "http://localhost:8000/history/31e845c4-7221-4f13-bb17-802f067d26da"
+    ```
 
 ---
 
