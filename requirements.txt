@@ -6,3 +6,8 @@ sentence-transformers
 python-dotenv
 pypdf
 pytest
+fastapi
+uvicorn[standard]
+groq
+pydantic
+httpx
