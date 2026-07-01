@@ -37,16 +37,25 @@ def temp_pdf_dir(tmp_path):
     pdf_file.write_bytes(minimal_pdf)
     return str(pdf_dir)
 
-def test_load_documents(temp_pdf_dir):
+@patch("ingestion.loader.pypdf.PdfReader")
+def test_load_documents(mock_pdf_reader_cls, temp_pdf_dir):
     """
     Verifies that load_documents properly reads PDF files in a directory 
     and returns LlamaIndex Document objects.
     """
+    # Create mock PdfReader and page structure
+    mock_reader = MagicMock()
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "Hello World"
+    mock_reader.pages = [mock_page]
+    mock_pdf_reader_cls.return_value = mock_reader
+    
     docs = load_documents(temp_pdf_dir)
     assert len(docs) > 0
     assert isinstance(docs[0], Document)
-    # Verify that the parsed content contains our dummy string
+    # Verify that the parsed content contains our mock text
     assert "Hello World" in docs[0].text
+
 
 def test_chunk_documents():
     """
