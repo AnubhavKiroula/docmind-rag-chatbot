@@ -27,8 +27,12 @@ class QueryRequest(BaseModel):
     )
     top_k: Optional[int] = Field(
         default=None,
-        description="Optional dynamic retrieval limit representing the number of document chunks to retrieve."
+        ge=1,
+        le=50,
+        description="Optional dynamic retrieval limit representing the number of document chunks to retrieve.",
+        examples=[5]
     )
+
 
 
 class SourceChunk(BaseModel):
