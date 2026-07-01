@@ -33,8 +33,10 @@ def send_query(
     payload = {
         "query": query,
         "conversation_id": conversation_id,
-        "llm_mode": llm_mode
+        "llm_mode": llm_mode,
+        "top_k": top_k
     }
+
     
     try:
         response = requests.post(url, json=payload, timeout=90.0)
