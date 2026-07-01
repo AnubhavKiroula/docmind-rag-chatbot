@@ -50,18 +50,23 @@ class QdrantRetriever:
             storage_context=self.storage_context
         )
 
-    def retrieve(self, query_text: str, top_k: int = 3) -> List[Tuple[str, float]]:
+    def retrieve(self, query_text: str, top_k: Optional[int] = None) -> List[Tuple[str, float]]:
         """
         Performs a semantic similarity search on Qdrant and returns the top_k relevant chunks.
         
         Parameters:
             query_text (str): The search question or statement.
-            top_k (int): Number of top documents to retrieve.
+            top_k (int, optional): Number of top documents to retrieve. Falls back to settings.top_k if None.
             
         Returns:
             List[Tuple[str, float]]: A list of tuples containing (chunk_text, similarity_score).
         """
+        from typing import Optional
+        if top_k is None:
+            top_k = settings.top_k
+            
         print(f"Retrieving top {top_k} chunk(s) for query: '{query_text}'...")
+
         
         # Generate a retriever object from our loaded index, configured with similarity_top_k.
         retriever = self.index.as_retriever(similarity_top_k=top_k)
