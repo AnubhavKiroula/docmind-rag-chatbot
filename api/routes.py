@@ -80,7 +80,7 @@ async def query_endpoint(request: QueryRequest, db: Session = Depends(get_db)):
     # (2) Fetch matching text chunks and relevance scores from Qdrant using the retriever
     requested_top_k = request.top_k
     try:
-        retrieved_chunks = retriever.retrieve(request.query)
+        retrieved_chunks = retriever.retrieve(request.query, top_k=requested_top_k)
     except Exception as e:
         raise HTTPException(
             status_code=500, 
