@@ -78,6 +78,7 @@ async def query_endpoint(request: QueryRequest, db: Session = Depends(get_db)):
     previous_messages = db.query(Message).filter(Message.conversation_id == conversation_id).order_by(Message.timestamp).all()
     
     # (2) Fetch matching text chunks and relevance scores from Qdrant using the retriever
+    requested_top_k = request.top_k
     try:
         retrieved_chunks = retriever.retrieve(request.query)
     except Exception as e:
