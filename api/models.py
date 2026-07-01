@@ -25,6 +25,11 @@ class QueryRequest(BaseModel):
         description="Optional active LLM mode override: 'ollama' or 'groq'.",
         examples=["ollama"]
     )
+    top_k: Optional[int] = Field(
+        default=None,
+        description="Optional dynamic retrieval limit representing the number of document chunks to retrieve."
+    )
+
 
 class SourceChunk(BaseModel):
     """
