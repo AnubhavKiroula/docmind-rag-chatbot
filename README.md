@@ -1,25 +1,19 @@
-# DocMind — Intelligent Document Assistant
+# 🤖 DocMind — Chat with Your Documents
 
-DocMind is a Retrieval-Augmented Generation (RAG) chatbot designed to ingest PDF documents, perform offline embedding extraction, store them in a local vector database, and provide intelligent question-answering based on the document context.
-
----
-
-## Tech Stack
-- **LlamaIndex**: Main orchestration framework used for loading, chunking, and indexing.
-- **Qdrant**: High-performance open-source vector database used to store and perform similarity search on embeddings.
-- **sentence-transformers/all-MiniLM-L6-v2**: A lightweight (80MB) pre-trained embedding model that runs fully offline.
-- **FastAPI**: Lightweight, asynchronous web framework for building standard REST APIs with auto-generated documentation.
-- **Ollama**: Local LLM inference engine running models locally (e.g. `llama3.2`).
-- **Groq API**: High-speed cloud fallback for LLM completions.
-- **Docker**: Used to run Qdrant locally in a container with zero manual installation.
-- **Python 3.12+ & virtualenv**: Main language and package isolation tool.
-- **pytest**: Core testing framework to validate the pipeline stages.
+DocMind is a Retrieval-Augmented Generation (RAG) chatbot designed to ingest PDF documents, perform offline embedding extraction, store them in a local vector database, and provide intelligent question-answering based on the document context. It offers a clean Streamlit interface, asynchronous FastAPI routing, and persistent database storage.
 
 ---
 
-## System Architecture
+## 📌 What It Does
+DocMind allows users to upload PDF documents and have natural, context-grounded conversations with their contents. It performs semantic analysis to retrieve only the most relevant text chunks, computes a confidence rating based on retrieval quality, and synthesizes answers locally (via Ollama) or on the cloud (via Groq API) while maintaining full multi-turn chat history.
 
-Below is the complete architectural flow showing document ingestion, vector storage, and query processing.
+---
+
+## 🏛️ System Architecture
+
+The following diagram illustrates how documents flow through the ingestion pipeline into Qdrant, and how queries are processed concurrently across the FastAPI backend, LLMs, and SQLite history store.
+
+![DocMind Architecture](docs/architecture.png)
 
 ```text
                       [ INGESTION PIPELINE ]
@@ -39,8 +33,8 @@ Below is the complete architectural flow showing document ingestion, vector stor
                       [ QUERY & INFERENCE PIPELINE ]
                       
   +------------------+      +---------------------+
-  |   User Client    | ---> |    FastAPI Routes   |
-  | (HTTP POST Request)     |   (/query endpoint)  |
+  |  Streamlit UI    | ---> |    FastAPI Routes   |
+  |  (Chat Interface)| <--- |   (/query endpoint)  |
   +------------------+      +---------------------+
                                        |
                                        v
@@ -50,10 +44,10 @@ Below is the complete architectural flow showing document ingestion, vector stor
                             +---------------------+      +----------------------+
                                        |
                                        v (chunks + relevance)
-                            +---------------------+
-                            | ResponseSynthesizer |
-                            | (Prompt & Confidence|
-                            |  Score Computation) |
+                            +---------------------+      +----------------------+
+                            | ResponseSynthesizer | ---> |   SQLite Database    |
+                            | (Prompt & Confidence|      | (Persistent History) |
+                            |  Score Computation) |      +----------------------+
                             +---------------------+
                                        |
                                        v (grounded prompt)
@@ -64,206 +58,201 @@ Below is the complete architectural flow showing document ingestion, vector stor
                                        |                            | (if offline)
                                        v (answer text)              v
                             +---------------------+      +----------------------+
-                            |     User Client     | <--- |  Groq Cloud API      |
-                            | (JSON Response API) |      |  (Cloud fallback)    |
+                            |    FastAPI Response | <--- |  Groq Cloud API      |
+                            | (JSON Response API) |      | (llama-3.1-8b-instant)
                             +---------------------+      +----------------------+
 ```
 
 ---
 
-## Phase 1: Ingestion Pipeline
-In Phase 1, we built the core ingestion pipeline. It automates processing raw PDF files from the local filesystem into queryable vector representation inside Qdrant.
+## 🛠️ Tech Stack
 
-For detailed documentation on Phase 1 ingestion, see the [Ingestion Documentation](file:///d:/PROJECT/docmind-rag-chatbot/ingestion/__init__.py).
-
----
-
-## Phase 2: Query Engine & FastAPI Backend
-In Phase 2, we built a retrieval-augmented query engine and exposed it via a REST API backend. Key accomplishments include:
-1. **Semantic Retriever**: Connections to Qdrant to perform vector similarity queries.
-2. **Unified LLM Interface**: Seamless routing between a local Ollama model (`llama3.2`) and Groq cloud inference with automatic fallback if local Ollama is offline.
-3. **Response Synthesizer**: Prompt assembly, citation generator, and confidence score scoring (derived from average chunk similarity).
-4. **FastAPI Endpoints**: Operates `/health`, `/query`, and `/history` endpoints with JSON payload validation.
-5. **Session History**: In-memory context tracking via `conversation_id` so that the LLM remembers previous dialogue turns.
-
----
-
-## Local Setup
-
-### Prerequisites
-- Docker Desktop installed and running.
-- Python 3.12+ installed.
-- Ollama running locally.
-- Groq Cloud API Key (Optional fallback, from [console.groq.com](https://console.groq.com)).
-
-> [!IMPORTANT]
-> **Ollama Model Verification**: Before starting the backend, verify that you have downloaded the target local model by running:
-> ```bash
-> ollama list
-> ```
-> Confirm that `llama3.2` (or the model name configured in your `.env` as `LOCAL_LLM_MODEL`) is present in the list. This prevents runtime errors and avoids fallback issues if you have multiple local models installed.
-
-### Installation & Run Steps
-
-1. **Clone and Navigate to Project**
-   ```bash
-   cd docmind-rag-chatbot
-   ```
-
-2. **Initialize and Activate Virtual Environment**
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-
-3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Start Qdrant Vector DB**
-   Ensure Docker Desktop is running, then start the container:
-   ```bash
-   docker compose up -d
-   ```
-   Verify that Qdrant is running by accessing the web dashboard: [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
-
-5. **Configure Environment Variables**
-   Copy the sample environment file to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   Fill in your `GROQ_API_KEY` (if using Groq API) and set `LLM_MODE` to `ollama` (for local) or `groq` (for cloud API).
-
-6. **Place PDFs and Run Ingestion**
-   Place any PDF document you want to ingest inside the `data/sample/` folder.
-   Run the ingestion script:
-   ```bash
-   python scripts/ingest.py
-   ```
-
-7. **Start FastAPI Backend Server**
-   Start the development server with live reload:
-   ```bash
-   python -m uvicorn main:app --reload
-   ```
-   The API will be available at [http://localhost:8000](http://localhost:8000).
-   The interactive API docs will be at [http://localhost:8000/docs](http://localhost:8000/docs).
+| Tool | Purpose |
+| :--- | :--- |
+| **Streamlit** | Fast Python-based web UI for the chat interface. |
+| **FastAPI** | Lightweight, asynchronous REST API backend. |
+| **LlamaIndex** | Core orchestration framework for loading, chunking, and indexing. |
+| **Qdrant** | High-performance vector database used to store and search embeddings. |
+| **SQLite** | Lightweight file-based persistent storage for conversation history. |
+| **SQLAlchemy** | Object-Relational Mapper (ORM) to interact with SQLite cleanly. |
+| **sentence-transformers/all-MiniLM-L6-v2** | 80MB pre-trained embedding model that runs fully offline. |
+| **Ollama** | Local LLM inference engine running models locally (e.g. `llama3.2`). |
+| **Groq API** | High-speed cloud fallback for LLM completions. |
+| **Docker** | Containerizes Qdrant local database. |
 
 ---
 
-## API Endpoints
+## 🌟 Features
 
-### 1. Health Check
-- **Endpoint**: `GET /health`
-- **Description**: Returns 200 OK with server timestamp to verify operations.
-- **Example Commands**:
-  - **Linux / macOS (Bash)**:
-    ```bash
-    curl http://localhost:8000/health
-    ```
-  - **Windows (PowerShell)**:
-    ```powershell
-    Invoke-RestMethod -Uri "http://localhost:8000/health"
-    ```
-- **Example Response**:
-  ```json
-  {
-    "status": "ok",
-    "timestamp": "2026-06-30T11:00:00.000000"
-  }
-  ```
-
-### 2. Query PDF Index (RAG)
-- **Endpoint**: `POST /query`
-- **Description**: Submits a user query, fetches relevant chunks from Qdrant, synthesizes a cited response, logs to session history, and returns JSON.
-- **Example Commands**:
-  - **Linux / macOS (Bash)**:
-    ```bash
-    curl -X POST http://localhost:8000/query \
-      -H "Content-Type: application/json" \
-      -d '{"query": "What is the main topic of the documents?"}'
-    ```
-  - **Windows (PowerShell)**:
-    ```powershell
-    Invoke-RestMethod -Uri "http://localhost:8000/query" -Method Post -ContentType "application/json" -Body '{"query": "What is the main topic of the documents?"}'
-    ```
-- **Example Response**:
-  ```json
-  {
-    "answer": "Based on [Chunk 1], the main topic is the implementation of an ingestion pipeline. [Chunk 2] specifies that Qdrant is used as the vector store.",
-    "confidence_score": 0.8542,
-    "sources": [
-      {
-        "text": "The ingestion pipeline extracts pages from the PDF...",
-        "relevance_score": 0.8923
-      },
-      {
-        "text": "We store these points into a collection named docmind_docs in Qdrant...",
-        "relevance_score": 0.8161
-      }
-    ],
-    "conversation_id": "31e845c4-7221-4f13-bb17-802f067d26da"
-  }
-  ```
-
-### 3. Get Conversation History
-- **Endpoint**: `GET /history/{conversation_id}`
-- **Description**: Retrieves history logs for a specific session.
-- **Example Commands**:
-  - **Linux / macOS (Bash)**:
-    ```bash
-    curl http://localhost:8000/history/31e845c4-7221-4f13-bb17-802f067d26da
-    ```
-  - **Windows (PowerShell)**:
-    ```powershell
-    Invoke-RestMethod -Uri "http://localhost:8000/history/31e845c4-7221-4f13-bb17-802f067d26da"
-    ```
+- **Semantic Retrieval-Augmented Generation (RAG)**: Connects to a local Qdrant collection to retrieve the most contextually relevant document segments instead of basic keyword matches.
+- **Hybrid Model Toggle (Ollama vs. Groq)**: Live sidebar selector in the UI allows users to toggle between local models (Ollama `llama3.2`) and cloud APIs (Groq `llama-3.1-8b-instant`) to compare speed and response quality.
+- **Automatic Cloud Fallback**: If local Ollama is offline or experiences connection timeouts, the system auto-routes queries to Groq.
+- **Persistent Message Store**: Moves past simple in-memory variables to SQLAlchemy-driven SQLite persistence. History survives backend server restarts.
+- **RAG Trust & Transparency**:
+  - **Confidence Ratings**: Displays a percentage indicating how closely related the retrieved sources are to the question.
+  - **Source Citation Headers**: Fully cites which document chunks were used in an expandable UI section.
+- **Session Restarts**: "➕ Start New Conversation" sidebar button resets chat context safely.
 
 ---
 
-## Conversation Flow & History
-1. If no `conversation_id` is passed in `POST /query`, the backend generates a new UUID and returns it.
-2. In subsequent queries, send the `conversation_id` in the request payload:
-   ```json
-   {
-     "query": "Can you elaborate on that?",
-     "conversation_id": "31e845c4-7221-4f13-bb17-802f067d26da"
-   }
-   ```
-3. The API retrieves previous dialogue turns for that ID, appends them to the context, and queries the LLM.
+## 🚀 Getting Started
 
----
+Follow these steps in order to clone, configure, and execute the entire project stack:
 
-## LLM Configuration (Local vs. Cloud)
-You can customize model parameters in your `.env` file:
-```ini
-LLM_MODE=ollama          # 'ollama' for local, 'groq' for cloud API
-LOCAL_LLM_MODEL=llama3.2 # Local Ollama model name
-OLLAMA_BASE_URL=http://localhost:11434
-GROQ_API_KEY=gsk_...     # Optional cloud API key
-```
-- If `LLM_MODE=ollama` and Ollama is offline, the client will auto-fallback to Groq if a `GROQ_API_KEY` is present.
-
----
-
-## Scaling & Production Considerations (Phase 3 & 4 Planning)
-To prepare the DocMind RAG Chatbot for production and scaling, the following middleware upgrades are planned:
-- **FastAPI Request Logging Middleware**: Standardized JSON logs for all incoming requests, response times, and processing durations using libraries like `structlog`.
-- **FastAPI Rate Limiting Middleware**: IP-based rate limiting (using Redis and `slowapi`) on the `POST /query` endpoint to prevent brute-forcing and resource starvation.
-- **Persistent Session Stores**: Swapping the in-memory chat dict with a PostgreSQL or Redis backend to persist conversation histories.
-
----
-
-## Running Tests
-Run the automated pytest test suite to verify code compliance and correctness. **Note**: Make sure to activate the virtual environment (`venv`) before running tests so that packages and the local python path are correctly set up.
+### 1. Clone the Repository
 ```bash
-# Activate environment first:
-# Windows: venv\Scripts\activate
-# Linux/macOS: source venv/bin/activate
-
-python -m pytest
+git clone https://github.com/AnubhavKiroula/docmind-rag-chatbot.git
+cd docmind-rag-chatbot
 ```
+
+### 2. Initialize and Activate the Virtual Environment
+```bash
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Start the Qdrant Vector Database
+Ensure Docker Desktop is running, then launch the Qdrant container:
+```bash
+docker compose up -d
+```
+Verify that Qdrant is running by accessing the web dashboard: [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
+
+### 5. Verify the Local Ollama Model
+Verify that your local Ollama instance has downloaded the target model:
+```bash
+ollama list
+```
+Confirm that `llama3.2` is present. If missing, pull it:
+```bash
+ollama pull llama3.2
+```
+
+### 6. Configure Environment Variables
+Copy the sample environment file to `.env`:
+```bash
+cp .env.example .env
+```
+Open `.env` and fill in your optional `GROQ_API_KEY`.
+
+### 7. Place Documents and Run Ingestion
+Place any PDF document you want to query inside the `data/sample/` folder (a default `sample.pdf` is provided).
+Execute the ingestion script:
+```bash
+python scripts/ingest.py
+```
+
+### 8. Start the FastAPI Backend
+```bash
+python -m uvicorn main:app --reload
+```
+The REST API will boot on [http://localhost:8000](http://localhost:8000).
+
+### 9. Start the Streamlit Frontend
+In a new terminal window (with `venv` active), start the Streamlit web application:
+```bash
+streamlit run frontend/app.py
+```
+Open your browser to [http://localhost:8501](http://localhost:8501) to begin chatting!
+
+---
+
+## 🔌 API Documentation
+
+FastAPI automatically generates interactive OpenAPI Swagger documentation. Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to inspect or test endpoints.
+
+### Main Routes:
+- `GET /health`: Uptime status check.
+- `POST /query`: Accepts query text, conversation ID, and LLM mode; drives chunk retrieval and response generation.
+- `GET /conversations/{conversation_id}`: Retrieves full chat history for the given session.
+
+---
+
+## 📂 Project Structure
+
+```text
+docmind-rag-chatbot/
+│
+├── api/                       # FastAPI Web Layer
+│   ├── __init__.py
+│   ├── models.py              # Pydantic schemas (QueryRequest, QueryResponse)
+│   └── routes.py              # Route endpoints (/health, /query, /conversations)
+│
+├── config/                    # Configuration Layer
+│   ├── __init__.py
+│   └── settings.py            # Centralized settings loading using Pydantic
+│
+├── db/                        # Database Layer (SQLite + SQLAlchemy)
+│   ├── __init__.py
+│   ├── database.py            # DB engine, session maker, init_db()
+│   └── models.py              # SQLAlchemy schema models (Conversations, Messages)
+│
+├── data/                      # Raw PDF storage folder
+│   └── sample/
+│       └── sample.pdf         # Sample document for testing
+│
+├── docs/                      # Graphic assets
+│   └── architecture.png       # Pipeline flow image
+│
+├── frontend/                  # Streamlit Interface Layer
+│   ├── __init__.py
+│   ├── api_client.py          # HTTP requests client communicating with FastAPI
+│   └── app.py                 # Streamlit chat interface
+│
+├── ingestion/                 # Document Parsing & Storage Layer
+│   ├── __init__.py
+│   ├── chunker.py             # Text chunking logic
+│   ├── embedder.py            # Local Hugging Face embedding loader
+│   ├── loader.py              # PDF parser using SimpleDirectoryReader
+│   └── store.py               # Qdrant index creator
+│
+├── query/                     # RAG Query Orchestration Layer
+│   ├── __init__.py
+│   ├── llm_client.py          # Unified Ollama / Groq API model router
+│   ├── retriever.py           # Similarity search logic against Qdrant
+│   └── synthesizer.py         # Grounded prompt building & confidence scoring
+│
+├── scripts/
+│   └── ingest.py              # Script to trigger the PDF ingestion pipeline
+│
+├── tests/                     # Unit and Integration Test Suite
+│   ├── test_api.py            # Route handler tests
+│   ├── test_ingestion.py      # PDF parsing and embedding extraction tests
+│   └── test_query.py          # Retriever, LLM fallback, and synthesizer tests
+│
+├── .env.example               # Template environment configuration
+├── docker-compose.yml         # Container configuration for Qdrant database
+├── main.py                    # Entry point to launch FastAPI backend
+└── requirements.txt           # Python project package dependencies
+```
+
+---
+
+## 🧠 What I Learned
+
+- **Chunking Strategy Tradeoffs**: I experimented with `chunk_size` and `chunk_overlap`. Small chunk windows are excellent for retrieving highly targeted lines of text but lack general context, leading to LLM confusion. Large chunk windows provide rich context but increase prompt token usage and introduce noisy details, slowing down inference.
+- **Vector Search vs. Keyword Search**: Relational search operates on lexical matches. RAG uses high-dimensional vector distances (Cosine similarity) to search for intent. It links synonyms like "car" and "automobile" close together in the embedding space, retrieving correct context regardless of matching key-phrases.
+- **Local vs. API LLM Tradeoffs**: Designed a hybrid router. Local execution via Ollama is completely free and maintains absolute data privacy, but execution speed relies entirely on local GPU/VRAM hardware constraints. API completion via Groq is ultra-fast and handles larger parameter models but relies on internet connectivity, incurs API fees, and exports data to cloud endpoints.
+- **Production API Architecture**: Implemented robust asynchronous routing, Pydantic type checking, database connection pooling via dependency injection, and clean separation between UI components and processing layers.
+
+---
+
+## 🔮 Future Improvements
+
+- **Multi-Document Support**: Allow users to manage separate document directories and isolate specific books/files directly from the UI.
+- **Token-by-Token Streaming**: Stream responses dynamically to the chat interface to reduce perceived user latency.
+- **User Authentication**: Add JWT authorization middleware to separate private user collections and chat histories.
+- **Production Deployment**: Deploy the Docker Compose stack to cloud environments (like AWS ECS or GCP Cloud Run) with a reverse proxy like Nginx.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

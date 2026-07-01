@@ -129,3 +129,48 @@ This document contains structured answers to the conceptual, technical, and oper
   - **Resolution**:
     1. Introduce a strict flag in configuration (e.g., `STRICT_LOCAL=True` or check if `LLM_MODE` is explicitly set to local without fallbacks).
     2. If `STRICT_LOCAL` is active and Ollama fails, raise a clear user-facing HTTP 503 error: `"Local LLM service (Ollama) is offline and strict local execution is required. Please start Ollama."` rather than falling back to Groq.
+---
+
+## Phase 3: Frontend Interface, Persistent Storage & Production Polish
+
+### Operational Q&A
+**Q: How do we verify persistent database storage?**  
+**A:** Run the application, submit a few queries to start a conversation, then restart the FastAPI backend server. Refresh the Streamlit UI; your conversation history should reload and persist perfectly from the SQLite `docmind.db` file instead of disappearing.
+
+---
+
+### Conceptual & Technical Q&A
+
+#### Q1: Why did we transition from in-memory history to a relational SQLite database?
+- **Data Persistence**: In-memory dictionaries are volatile and vanish as soon as the FastAPI process restarts or crashes. A database ensures that users do not lose their conversation history.
+- **Data Normalization & Integrity**: By mapping relationships using SQLAlchemy ORM (1-to-many from Conversations to Messages), we enforce referential integrity and support advanced queries (e.g., loading timestamps, filtering specific roles).
+
+#### Q2: What is the benefit of splitting the frontend (Streamlit) and backend (FastAPI) rather than doing everything in Streamlit?
+- Separation of Concerns: The frontend remains purely a user interface/presentation layer, while the backend handles document ingestion, database queries, and LLM orchestration.
+- Scalability: Multiple frontends (web, mobile, or CLI clients) can connect to the same centralized FastAPI backend.
+- Security: Database credentials, API keys, and sensitive models stay protected on the backend server instead of being exposed to frontend clients.
+
+---
+
+## Phase 4: Dynamic Retrieval Limit
+
+### Operational Q&A
+**Q: How does the dynamic retrieval slider solve the global aggregation problem?**  
+**A:** When querying a global question (like counting all elements or asking for a summary), sliding the Top K selector to `10` or higher forces the retriever to fetch all page chunks, supplying the LLM with the complete context needed to count or compile the list accurately.
+
+---
+
+### Conceptual & Technical Q&A
+
+#### Q1: What is the \"Global Aggregation Problem\" in RAG, and why does a low Top K limit cause it?
+- **The Problem**: Semantic search excels at retrieving specific lookup snippets (e.g., *"What is the database version?"*), but fails at summarization or counting queries (e.g., *"How many total servers are mentioned?"*).
+- **Why Low Top K Causes It**: If the limit is set to a low value (like `3`), only the 3 most lexically/semantically similar chunks are sent to the LLM. The LLM is blind to the other pages, leading to incomplete lists or statements that it does not have enough information.
+
+#### Q2: How does the dynamic top_k slider impact the trade-offs of the RAG system?
+- **High Top K (e.g., 10-15)**:
+  - *Pros*: Complete context, answers global questions, less likely to miss relevant details.
+  - *Cons*: Higher latency, consumes more tokens, increased API costs, potential for the LLM to get confused by noise ("lost in the middle").
+- **Low Top K (e.g., 1-3)**:
+  - *Pros*: Extremely fast, low token count, low cost, cleaner context focusing only on the absolute best matches.
+  - *Cons*: Incomplete answers for global or multi-topic questions, higher chance of missing supporting information.
+

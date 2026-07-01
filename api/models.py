@@ -20,6 +20,20 @@ class QueryRequest(BaseModel):
         description="Optional unique identifier to associate the query with an existing chat history context.",
         examples=["550e8400-e29b-41d4-a716-446655440000"]
     )
+    llm_mode: Optional[str] = Field(
+        default=None,
+        description="Optional active LLM mode override: 'ollama' or 'groq'.",
+        examples=["ollama"]
+    )
+    top_k: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=50,
+        description="Optional dynamic retrieval limit representing the number of document chunks to retrieve.",
+        examples=[5]
+    )
+
+
 
 class SourceChunk(BaseModel):
     """

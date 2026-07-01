@@ -10,6 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 # We import our registered router containing health check, history, and query endpoints.
 from api.routes import router as api_router
+# We import init_db to initialize the database at startup.
+from db.database import init_db
 
 # Initialize the FastAPI app instance with metadata for interactive Swagger documentation.
 app = FastAPI(
@@ -17,6 +19,14 @@ app = FastAPI(
     description="An intelligent retrieval-augmented generation (RAG) backend to chat with your ingested PDF documents.",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+def on_startup():
+    """
+    Uptime initialization: establishes database schemas.
+    """
+    init_db()
+
 
 # Define allowed origins for CORS.
 # Allows both the standard localhost React dev port (3000) and the backend self-port (8000).
