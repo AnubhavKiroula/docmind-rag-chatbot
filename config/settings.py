@@ -69,8 +69,10 @@ class Settings(BaseModel):
     
     # Default retrieval top_k limit
     top_k: int = Field(
-        default=3
+        default=int(os.getenv("DEFAULT_TOP_K", "3")),
+        description="The default number of document chunks to retrieve during a semantic query."
     )
+
 
 
 # Instantiate Settings globally. Any module importing settings will access this validated object.
