@@ -152,3 +152,28 @@ def test_history_endpoint():
     response_invalid = client.get("/conversations/invalid-session-xyz")
     assert response_invalid.status_code == 404
     assert response_invalid.json()["detail"] == "Conversation session not found."
+
+@patch("api.routes.retriever.retrieve")
+@patch("api.routes.synthesizer.synthesize")
+def test_query_endpoint_with_top_k(mock_synthesize, mock_retrieve):
+    """
+    Test POST /query with an explicit top_k parameter passes the value to the retriever.
+    """
+    mock_retrieve.return_value = [("Mock chunk", 0.9)]
+    mock_synthesize.return_value = {
+        "answer": "Mock answer",
+        "confidence_score": 0.9,
+        "sources": ["Mock chunk"]
+    }
+    
+    payload = {
+        "query": "Hello",
+        "top_k": 5
+    }
+    
+    response = client.post("/query", json=payload)
+    assert response.status_code == 200
+    
+    # Assert retriever.retrieve was called with top_k=5
+    mock_retrieve.assert_called_once_with("Hello", top_k=5)
+
