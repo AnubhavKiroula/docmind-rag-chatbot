@@ -66,6 +66,12 @@ class Settings(BaseModel):
         default=os.getenv("LLM_MODE", "ollama"),
         description="Controls backend generation routing. 'ollama' selects local LLM, 'groq' selects Groq Cloud API."
     )
+    
+    # Default retrieval top_k limit
+    top_k: int = Field(
+        default=3
+    )
+
 
 # Instantiate Settings globally. Any module importing settings will access this validated object.
 settings = Settings()
