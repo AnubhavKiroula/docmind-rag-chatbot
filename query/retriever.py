@@ -4,9 +4,10 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 # We import QdrantVectorStore, VectorStoreIndex, StorageContext, and Settings from LlamaIndex core to access the DB.
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex, StorageContext, Settings
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 # We import the instantiated settings object to retrieve configuration values (URLs, model names, etc.).
+
 from config.settings import settings
 
 # Semantic similarity search means finding document chunks whose core meaning is closest to the query's meaning.
@@ -61,9 +62,9 @@ class QdrantRetriever:
         Returns:
             List[Tuple[str, float]]: A list of tuples containing (chunk_text, similarity_score).
         """
-        from typing import Optional
         if top_k is None:
             top_k = settings.top_k
+
             
         print(f"Retrieving top {top_k} chunk(s) for query: '{query_text}'...")
 
