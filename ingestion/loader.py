@@ -1,14 +1,28 @@
 import os
+import pypdf
 from typing import List
-# We import SimpleDirectoryReader from LlamaIndex core.
-# This utility is designed to load files from a specific directory automatically.
 from llama_index.core import SimpleDirectoryReader
-# We import Document, which is LlamaIndex's standard data structure representing text documents.
 from llama_index.core.schema import Document
+
+class CustomPDFReader:
+    """
+    A custom PDF document extractor using the pypdf library.
+    Bypasses default LlamaIndex plain-text fallback parsing in environments 
+    where llama-index-readers-file is not installed.
+    """
+    def load_data(self, file_path: str, extra_info: dict = None) -> List[Document]:
+        reader = pypdf.PdfReader(file_path)
+        docs = []
+        for i, page in enumerate(reader.pages):
+            text = page.extract_text() or ""
+            metadata = extra_info.copy() if extra_info else {}
+            metadata["page_number"] = i + 1
+            docs.append(Document(text=text, metadata=metadata))
+        return docs
 
 def load_documents(folder_path: str) -> List[Document]:
     """
-    Loads all PDF documents from the specified folder.
+    Loads all PDF documents from the specified folder using CustomPDFReader.
     
     Parameters:
         folder_path (str): Path to the directory containing PDFs.
@@ -16,20 +30,17 @@ def load_documents(folder_path: str) -> List[Document]:
     Returns:
         List[Document]: A list of LlamaIndex Document objects containing the text contents of the PDFs.
     """
-    # Check if the directory exists, and raise an error if it doesn't.
     if not os.path.exists(folder_path):
         raise FileNotFoundError(f"The directory {folder_path} does not exist.")
         
-    # We print a message indicating which folder we are loading PDFs from.
     print(f"Loading documents from folder: {folder_path}...")
     
-    # SimpleDirectoryReader scans the folder and reads every PDF it finds.
-    # We configure it with required_exts=[".pdf"] to ensure it only processes PDF files.
-    reader = SimpleDirectoryReader(input_dir=folder_path, required_exts=[".pdf"])
+    # We configure SimpleDirectoryReader with our CustomPDFReader for PDF files.
+    reader = SimpleDirectoryReader(
+        input_dir=folder_path,
+        required_exts=[".pdf"],
+        file_extractor={".pdf": CustomPDFReader()}
+    )
     
-    # We call load_data() which triggers the reader to parse all PDF files.
-    # Each PDF page or document will be loaded into a Document object.
     documents = reader.load_data()
-    
-    # Return the loaded documents.
     return documents

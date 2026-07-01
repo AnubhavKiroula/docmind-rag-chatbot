@@ -41,6 +41,20 @@ llm_mode = "ollama" if llm_option == "Ollama (Local)" else "groq"
 # st.session_state.llm_mode is used to pass through to send_query()
 st.session_state.llm_mode = llm_mode
 
+# Retrieval Limit (Top K) Slider (Phase 4)
+# Allows the user to dynamically adjust the number of document chunks fetched from Qdrant,
+# which directly controls the retrieval context size.
+top_k = st.sidebar.slider(
+    "Retrieval Limit (Top K)",
+    min_value=1,
+    max_value=15,
+    value=3,
+    step=1,
+    help="Adjust the number of document chunks retrieved from the database to answer the query. Increase this to answer global questions about the entire document."
+)
+st.session_state.top_k = top_k
+
+
 # Start New Conversation Button (Step 9)
 # Resetting the context is critical so that the user can switch topics or clear history
 # without restarting the FastAPI server or closing their browser window.
