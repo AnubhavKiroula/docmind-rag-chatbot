@@ -10,7 +10,12 @@ BACKEND_URL = "http://localhost:8000"
 # This prevents our main app.py file from becoming cluttered with requests boilerplate, URL formatting,
 # and HTTP error handling. If the API endpoints ever change, we only need to update this single file.
 
-def send_query(query: str, conversation_id: Optional[str] = None, llm_mode: Optional[str] = None) -> Dict[str, Any]:
+def send_query(
+    query: str, 
+    conversation_id: Optional[str] = None, 
+    llm_mode: Optional[str] = None,
+    top_k: Optional[int] = None
+) -> Dict[str, Any]:
     """
     Submits a query to the FastAPI RAG engine and returns the response dictionary.
     
@@ -18,10 +23,12 @@ def send_query(query: str, conversation_id: Optional[str] = None, llm_mode: Opti
         query (str): The question being asked.
         conversation_id (str): The active chat session ID (if continuing a thread).
         llm_mode (str): Active model choice override ('ollama' or 'groq').
+        top_k (int): Optional dynamic retrieval limit (Top K).
         
     Returns:
         Dict[str, Any]: The JSON response containing 'answer', 'confidence_score', 'sources', etc.
     """
+
     url = f"{BACKEND_URL}/query"
     payload = {
         "query": query,
