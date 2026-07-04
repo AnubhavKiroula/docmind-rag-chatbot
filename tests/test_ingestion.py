@@ -77,13 +77,22 @@ def test_chunk_documents():
 
 def test_get_embedding_model():
     """
-    Verifies that get_embedding_model initializes the HuggingFaceEmbedding class.
-    We patch it to avoid downloading heavy weights during the unit test.
+    Verifies that get_embedding_model initializes the HuggingFaceEmbedding class in local mode.
+    WHY patch inside llama_index: The import of HuggingFaceEmbedding is now lazy (inside the
+    function body), so we must patch its source module rather than ingestion.embedder module-level.
+    WHY mock embed_mode=local: Forces the local branch to be taken, not the API branch.
     """
-    with patch("ingestion.embedder.HuggingFaceEmbedding") as mock_hf:
+    with patch("ingestion.embedder.settings") as mock_settings, patch(
+        "llama_index.embeddings.huggingface.HuggingFaceEmbedding"
+    ) as mock_hf:
+        # Configure settings mock to select local embedding mode
+        mock_settings.embed_mode = "local"
+        mock_settings.embed_model = "sentence-transformers/all-MiniLM-L6-v2"
         mock_hf.return_value = "mock_model"
-        model = get_embedding_model("dummy_model_name")
-        mock_hf.assert_called_once_with(model_name="dummy_model_name")
+
+        model = get_embedding_model()
+
+        mock_hf.assert_called_once_with(model_name="sentence-transformers/all-MiniLM-L6-v2")
         assert model == "mock_model"
 
 

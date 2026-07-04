@@ -1,7 +1,8 @@
 import qdrant_client
 
-# We import HuggingFaceEmbedding to convert the user's search query into the same vector space as the documents.
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+# WHY get_embedding_model: Centralized factory that returns either a local or API-based embedding model
+# depending on the EMBED_MODE env var. This allows the same code to work in both local dev and cloud hosting.
+from ingestion.embedder import get_embedding_model
 
 # We import QdrantVectorStore, VectorStoreIndex, StorageContext, and Settings from LlamaIndex core to access the DB.
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -28,13 +29,13 @@ class QdrantRetriever:
     """
 
     def __init__(self):
-        print(f"Loading embedding model for retriever: {settings.embed_model}...")
-        # Load the Hugging Face sentence-transformers model.
-        # This is needed to convert raw user queries into semantic embeddings.
-        self.embed_model = HuggingFaceEmbedding(model_name=settings.embed_model)
+        print(f"Initializing embedding model for retriever (mode={settings.embed_mode})...")
+        # WHY get_embedding_model(): Uses the centralized factory to load either a local model
+        # or call the HuggingFace Inference API, based on the EMBED_MODE env var.
+        self.embed_model = get_embedding_model()
 
         # Set the default embedding model in LlamaIndex global settings.
-        # This makes sure that index queries use our sentence-transformer model.
+        # This makes sure that index queries use our configured embedding model.
         Settings.embed_model = self.embed_model
 
         # Environment-driven configuration pattern:

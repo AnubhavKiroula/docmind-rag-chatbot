@@ -1,34 +1,38 @@
-# We import HuggingFaceEmbedding from LlamaIndex's HuggingFace integration package.
-# This integrates local Hugging Face sentence-transformers models directly into LlamaIndex.
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-
-# An embedding is a vector representation of text (a list of numbers, e.g., 384 dimensions for all-MiniLM-L6-v2).
-# It captures the semantic meaning and context of a text segment. Words or sentences with similar meanings
-# are placed closer together in this high-dimensional vector space, allowing for fast mathematical similarity searches.
+# WHY two modes:
+# 'local' mode (default): Loads the sentence-transformers model directly into server RAM via PyTorch.
+#   Good for: local development, Docker, machines with 1GB+ RAM.
+#   Bad for: Render free tier (512MB RAM limit — model alone can use 300MB+).
 #
-# We use sentence-transformers/all-MiniLM-L6-v2 because:
-# 1. It is a lightweight model (only ~80MB), making it run extremely fast even on standard CPUs.
-# 2. It runs completely offline without requiring any external APIs or internet access after download.
-# 3. It provides high-quality retrieval accuracy for general English texts.
+# 'api' mode: Sends text to HuggingFace's Inference API to get embeddings back.
+#   Good for: cloud free-tier hosting (no model in RAM, no PyTorch initialization).
+#   Bad for: rate-limited on HF free tier (~requests per hour limit).
+#
+# The active mode is controlled by the EMBED_MODE environment variable.
+
+from config.settings import settings
 
 
-def get_embedding_model(model_name: str) -> HuggingFaceEmbedding:
+def get_embedding_model():
     """
-    Loads a HuggingFace sentence-transformer embedding model.
-
-    Parameters:
-        model_name (str): The name of the HuggingFace model (e.g. 'sentence-transformers/all-MiniLM-L6-v2').
+    Returns the appropriate embedding model based on the EMBED_MODE environment variable.
 
     Returns:
-        HuggingFaceEmbedding: The initialized embedding model object.
+        An embedding model compatible with LlamaIndex (HuggingFaceEmbedding or HuggingFaceInferenceAPIEmbedding).
     """
-    # Print status indicating we are loading the embedding model
-    print(f"Loading embedding model: {model_name}...")
+    if settings.embed_mode.lower() == "api":
+        # WHY HuggingFaceInferenceAPIEmbedding: Calls HuggingFace's hosted inference endpoints instead
+        # of loading the model locally. This keeps server RAM usage very low (no PyTorch model in memory).
+        from llama_index.embeddings.huggingface import HuggingFaceInferenceAPIEmbedding
 
-    # We initialize the HuggingFaceEmbedding class with the specified model name.
-    # When this code runs for the first time, it downloads the model weights from Hugging Face hub.
-    # On subsequent runs, it loads the model weights directly from the local disk cache.
-    embed_model = HuggingFaceEmbedding(model_name=model_name)
+        print(f"[EmbedMode=api] Using HuggingFace Inference API for model: {settings.embed_model}")
+        return HuggingFaceInferenceAPIEmbedding(
+            model_name=settings.embed_model,
+            token=settings.hf_token or None,
+        )
+    else:
+        # WHY HuggingFaceEmbedding: Loads the full model locally via PyTorch.
+        # Faster after warm-up, no rate limits, no API token needed. Default for local dev and Docker.
+        from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-    # Return the loaded embedding model instance
-    return embed_model
+        print(f"[EmbedMode=local] Loading model into RAM: {settings.embed_model}")
+        return HuggingFaceEmbedding(model_name=settings.embed_model)
