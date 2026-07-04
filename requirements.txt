@@ -1,18 +1,49 @@
 # Production Dependencies for DocMind
-# This file contains only the dependencies required to run the application in production.
-# Keeping dev and testing tools out of this file ensures smaller, faster, and more secure Docker images.
+# WHY pinned: Unpinned llama-index has a massive transitive dependency tree that causes
+# pip's dependency resolver to hit "resolution-too-deep" on Render's free tier.
+# All versions below are taken directly from the working local environment (pip freeze).
 
-llama-index
-llama-index-vector-stores-qdrant
-llama-index-embeddings-huggingface
-qdrant-client
-sentence-transformers
-python-dotenv
-pypdf
-fastapi
-uvicorn
-groq
-pydantic
-streamlit
-sqlalchemy
-requests
+# --- LlamaIndex Ecosystem ---
+# WHY all sub-packages pinned: llama-index splits into many small packages; pinning each
+# prevents pip from backtracking through hundreds of version combinations.
+llama-index==0.14.23
+llama-index-core==0.14.23
+llama-index-embeddings-huggingface==0.7.0
+llama-index-embeddings-openai==0.6.0
+llama-index-instrumentation==0.5.0
+llama-index-llms-openai==0.7.9
+llama-index-vector-stores-qdrant==0.10.1
+llama-index-workflows==2.22.1
+
+# --- Vector Database Client ---
+qdrant-client==1.18.0
+
+# --- Embedding Model ---
+# WHY sentence-transformers: Used by llama-index-embeddings-huggingface for local embeddings.
+# torch (CPU-only) is pulled in as a transitive dep via --extra-index-url in the build command.
+sentence-transformers==5.6.0
+
+# --- Environment & Configuration ---
+python-dotenv==1.2.2
+
+# --- PDF Parsing ---
+pypdf==6.14.2
+
+# --- Web Framework & ASGI Server ---
+fastapi==0.138.2
+uvicorn==0.49.0
+
+# --- LLM API Client ---
+groq==1.5.0
+
+# --- Data Validation ---
+pydantic==2.13.4
+
+# --- Frontend (also used for local dev; deployed on Streamlit Cloud separately) ---
+streamlit==1.58.0
+
+# --- Database ORM ---
+sqlalchemy==2.0.51
+
+# --- HTTP Requests ---
+requests==2.34.2
