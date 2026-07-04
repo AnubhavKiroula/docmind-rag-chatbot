@@ -108,8 +108,8 @@ def test_build_vector_index():
             collection_name="test_collection"
         )
         
-        # Verify Qdrant connection URL
-        mock_client_cls.assert_called_once_with(url="http://localhost:6333")
+        # Verify Qdrant connection URL and API key
+        mock_client_cls.assert_called_once_with(url="http://localhost:6333", api_key=None)
         # Verify collection setup
         mock_store_cls.assert_called_once_with(client=mock_client, collection_name="test_collection")
         # Verify Index creation
