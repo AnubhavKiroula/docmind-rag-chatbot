@@ -1,0 +1,19 @@
+# Docker Compose Production Override (docker-compose.prod.yml)
+# WHY Docker Compose Override: This file defines environment overrides specifically for production deployments.
+# When executed with `docker compose -f docker-compose.yml -f docker-compose.prod.yml up`,
+# Docker merges this specification with the base docker-compose.yml file.
+# This prevents code duplication (DRY principle) while customizing cloud execution settings.
+
+services:
+  # Override Backend Service settings for Cloud Production
+  backend:
+    # Environment variables for production stage
+    environment:
+      # WHY QDRANT_MODE=cloud: Routes vector database queries directly to managed Qdrant Cloud free tier.
+      - QDRANT_MODE=cloud
+      # WHY LLM_MODE=groq: Selects Groq Cloud API inference (since local Ollama daemon is unavailable in cloud environments).
+      - LLM_MODE=groq
+      # WHY ENVIRONMENT=production: Enables production logging and security defaults.
+      - ENVIRONMENT=production
+    # Remove local qdrant container dependency in production (vectors served via Qdrant Cloud)
+    depends_on: []
