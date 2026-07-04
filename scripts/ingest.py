@@ -28,7 +28,6 @@ def main():
     # We retrieve the configuration variables with safe fallback defaults.
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
     collection_name = os.getenv("QDRANT_COLLECTION_NAME", "docmind_docs")
-    embed_model_name = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     chunk_size = int(os.getenv("CHUNK_SIZE", "512"))
     chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "64"))
 
