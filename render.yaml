@@ -29,6 +29,10 @@ services:
         value: groq
       - key: ENVIRONMENT
         value: production
+      # WHY EMBED_MODE=api: Disables local PyTorch model loading on Render's 512MB free tier.
+      # Embeddings are computed via HuggingFace Inference API, saving ~300MB RAM.
+      - key: EMBED_MODE
+        value: api
 
       # Secret keys requiring manual user input in Render dashboard (sync: false)
       - key: GROQ_API_KEY
@@ -36,4 +40,8 @@ services:
       - key: QDRANT_CLOUD_URL
         sync: false
       - key: QDRANT_API_KEY
+        sync: false
+      # WHY HF_TOKEN: Required for HuggingFace Inference API access (EMBED_MODE=api).
+      # Get a free token at https://huggingface.co/settings/tokens
+      - key: HF_TOKEN
         sync: false

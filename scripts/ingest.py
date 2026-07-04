@@ -63,8 +63,10 @@ def main():
     print(f"Success: Created {len(nodes)} text chunks.")
 
     # (4) Load the embedding model using embedder.py.
+    # WHY no argument: get_embedding_model() reads EMBED_MODEL and EMBED_MODE from settings.
+    # In 'local' mode it loads PyTorch model; in 'api' mode it uses HuggingFace Inference API.
     print("\n--- Phase 2.3: Loading Embedding Model ---")
-    embed_model = get_embedding_model(embed_model_name)
+    embed_model = get_embedding_model()
 
     # (5) Connect to Qdrant, save the nodes, and build the index using store.py.
     print("\n--- Phase 2.4: Building Vector Index & Storing in Qdrant ---")

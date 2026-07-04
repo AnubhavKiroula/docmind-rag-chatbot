@@ -66,6 +66,22 @@ class Settings(BaseModel):
         description="The Hugging Face sentence-transformers model used to embed text chunks.",
     )
 
+    # HuggingFace API token for cloud inference
+    # WHY: When EMBED_MODE=api, embeddings are generated via the HuggingFace Inference API
+    # instead of loading a local model. This eliminates PyTorch from the server's RAM footprint,
+    # making it suitable for Render's 512MB free tier.
+    hf_token: str = Field(
+        default=os.getenv("HF_TOKEN", ""),
+        description="HuggingFace API token for Inference API access. Required when EMBED_MODE=api.",
+    )
+
+    # Embedding execution mode: 'local' (default) or 'api'
+    # WHY: 'local' loads the model into RAM (good for dev/Docker); 'api' uses HF Inference API (good for free cloud hosting).
+    embed_mode: str = Field(
+        default=os.getenv("EMBED_MODE", "local"),
+        description="'local' loads sentence-transformers model into RAM. 'api' calls HuggingFace Inference API.",
+    )
+
     # Target token size for text chunking
     chunk_size: int = Field(
         default=int(os.getenv("CHUNK_SIZE", "512")),
