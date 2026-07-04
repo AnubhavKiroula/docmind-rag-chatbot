@@ -13,8 +13,13 @@ ENV PYTHONUNBUFFERED=1
 # is only re-executed when requirements.txt changes, saving build time when source code is updated.
 COPY requirements.txt /app/requirements.txt
 
-# Install Python production dependencies without saving package caches
-RUN pip install --no-cache-dir -r requirements.txt
+# Pre-install CPU-only PyTorch wheel
+# WHY: Reduces PyTorch download size from 530MB to 150MB, significantly reducing Docker image size and build time.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install Python production dependencies using CPU wheel index
+# WHY --extra-index-url: Ensures sentence-transformers resolves CPU PyTorch dependencies.
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 # Copy full application repository into container working directory
 COPY . /app

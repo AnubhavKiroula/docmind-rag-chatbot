@@ -10,9 +10,16 @@ WORKDIR /build
 # Copy production requirements file first to take advantage of Docker layer caching
 COPY requirements.txt .
 
-# Install production dependencies into /install prefix without caching download archives
-# WHY --prefix=/install: Packages are installed into a clean folder that can be copied directly to runtime stage.
-RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+# Upgrade pip to ensure latest wheel download verification algorithms are used
+RUN pip install --no-cache-dir --upgrade pip
+
+# Pre-install CPU-only PyTorch wheel
+# WHY: Reduces PyTorch download size from 530MB (CUDA) to 150MB (CPU-only), dramatically accelerating Docker build time and keeping container footprint compact.
+RUN pip install --prefix=/install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install production dependencies into /install prefix using CPU wheel index
+# WHY --extra-index-url: Ensures sentence-transformers resolves CPU PyTorch dependencies instead of pulling 500MB CUDA PyTorch wheels.
+RUN pip install --prefix=/install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 
 # Stage 2: Runtime stage
