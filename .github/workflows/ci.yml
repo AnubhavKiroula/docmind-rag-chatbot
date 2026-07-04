@@ -80,4 +80,6 @@ jobs:
 
       # Step 2.5: Run unit test suite
       - name: Run Pytest
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: pytest
