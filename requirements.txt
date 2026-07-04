@@ -1,3 +1,7 @@
+# Production Dependencies for DocMind
+# This file contains only the dependencies required to run the application in production.
+# Keeping dev and testing tools out of this file ensures smaller, faster, and more secure Docker images.
+
 llama-index
 llama-index-vector-stores-qdrant
 llama-index-embeddings-huggingface
@@ -5,12 +9,10 @@ qdrant-client
 sentence-transformers
 python-dotenv
 pypdf
-pytest
 fastapi
-uvicorn[standard]
+uvicorn
 groq
 pydantic
-httpx
 streamlit
 sqlalchemy
 requests
