@@ -1,6 +1,8 @@
 import os
+
 # We import load_dotenv to locate and load the .env file from the root directory.
 from dotenv import load_dotenv
+
 # We import BaseModel and Field from pydantic to construct and document our validated Settings model.
 from pydantic import BaseModel, Field
 from typing import Tuple, Optional

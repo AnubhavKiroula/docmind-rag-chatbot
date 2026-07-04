@@ -1,4 +1,3 @@
-import os
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +12,7 @@ from ingestion.chunker import chunk_documents
 from ingestion.embedder import get_embedding_model
 from ingestion.store import build_vector_index
 
+
 @pytest.fixture
 def temp_pdf_dir(tmp_path):
     """
@@ -21,7 +21,7 @@ def temp_pdf_dir(tmp_path):
     pdf_dir = tmp_path / "sample"
     pdf_dir.mkdir()
     pdf_file = pdf_dir / "test.pdf"
-    
+
     # A basic minimal valid PDF file structure (binary representation)
     # containing the text "Hello World"
     minimal_pdf = (
@@ -37,10 +37,11 @@ def temp_pdf_dir(tmp_path):
     pdf_file.write_bytes(minimal_pdf)
     return str(pdf_dir)
 
+
 @patch("ingestion.loader.pypdf.PdfReader")
 def test_load_documents(mock_pdf_reader_cls, temp_pdf_dir):
     """
-    Verifies that load_documents properly reads PDF files in a directory 
+    Verifies that load_documents properly reads PDF files in a directory
     and returns LlamaIndex Document objects.
     """
     # Create mock PdfReader and page structure
@@ -49,7 +50,7 @@ def test_load_documents(mock_pdf_reader_cls, temp_pdf_dir):
     mock_page.extract_text.return_value = "Hello World"
     mock_reader.pages = [mock_page]
     mock_pdf_reader_cls.return_value = mock_reader
-    
+
     docs = load_documents(temp_pdf_dir)
     assert len(docs) > 0
     assert isinstance(docs[0], Document)
@@ -63,13 +64,16 @@ def test_chunk_documents():
     into smaller overlapping text nodes.
     """
     docs = [
-        Document(text="This is a test document to verify the chunker. It has some text contents that need to be split into nodes.")
+        Document(
+            text="This is a test document to verify the chunker. It has some text contents that need to be split into nodes."
+        )
     ]
     # Set chunk_size small to force splitting the document
     nodes = chunk_documents(docs, chunk_size=15, chunk_overlap=3)
     assert len(nodes) > 1
     # Check that they are LlamaIndex TextNodes
     assert all(isinstance(node, TextNode) for node in nodes)
+
 
 def test_get_embedding_model():
     """
@@ -82,6 +86,7 @@ def test_get_embedding_model():
         mock_hf.assert_called_once_with(model_name="dummy_model_name")
         assert model == "mock_model"
 
+
 def test_build_vector_index():
     """
     Verifies that build_vector_index properly connects to Qdrant, registers
@@ -90,27 +95,32 @@ def test_build_vector_index():
     nodes = [TextNode(text="chunk 1"), TextNode(text="chunk 2")]
     # Using LlamaIndex MockEmbedding to avoid calling any remote or heavy local model APIs
     mock_embed = MockEmbedding(embed_dim=384)
-    
-    with patch("ingestion.store.qdrant_client.QdrantClient") as mock_client_cls, \
-         patch("ingestion.store.QdrantVectorStore") as mock_store_cls, \
-         patch("ingestion.store.StorageContext.from_defaults") as mock_storage_ctx_cls, \
-         patch("ingestion.store.VectorStoreIndex") as mock_index_cls:
-         
+
+    with patch("ingestion.store.qdrant_client.QdrantClient") as mock_client_cls, patch(
+        "ingestion.store.QdrantVectorStore"
+    ) as mock_store_cls, patch(
+        "ingestion.store.StorageContext.from_defaults"
+    ) as _mock_storage_ctx_cls, patch(
+        "ingestion.store.VectorStoreIndex"
+    ) as mock_index_cls:
+
         mock_client = MagicMock()
         mock_client_cls.return_value = mock_client
         mock_store = MagicMock()
         mock_store_cls.return_value = mock_store
-        
+
         build_vector_index(
-            nodes=nodes, 
-            embed_model=mock_embed, 
-            qdrant_url="http://localhost:6333", 
-            collection_name="test_collection"
+            nodes=nodes,
+            embed_model=mock_embed,
+            qdrant_url="http://localhost:6333",
+            collection_name="test_collection",
         )
-        
+
         # Verify Qdrant connection URL and API key
         mock_client_cls.assert_called_once_with(url="http://localhost:6333", api_key=None)
         # Verify collection setup
-        mock_store_cls.assert_called_once_with(client=mock_client, collection_name="test_collection")
+        mock_store_cls.assert_called_once_with(
+            client=mock_client, collection_name="test_collection"
+        )
         # Verify Index creation
         mock_index_cls.assert_called_once()

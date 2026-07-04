@@ -1,6 +1,8 @@
 import qdrant_client
+
 # We import HuggingFaceEmbedding to convert the user's search query into the same vector space as the documents.
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
 # We import QdrantVectorStore, VectorStoreIndex, StorageContext, and Settings from LlamaIndex core to access the DB.
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex, StorageContext, Settings
@@ -10,7 +12,7 @@ from typing import List, Tuple, Optional
 from config.settings import settings
 
 # Semantic similarity search means finding document chunks whose core meaning is closest to the query's meaning.
-# Unlike keyword matching (which looks for exact words), semantic search maps both the query and the documents 
+# Unlike keyword matching (which looks for exact words), semantic search maps both the query and the documents
 # into vectors. Distance is calculated between these vectors, allowing us to find relevant content even if
 # different words are used (e.g. searching 'automobile' can match 'car').
 #
