@@ -9,10 +9,8 @@ services:
     env: python
     region: singapore
     plan: free
-    # WHY 3.11.4: Render defaults to the latest Python (3.14), which lacks pre-built wheels
-    # for numpy, pandas, and other packages — forcing source compilation that fails on free tier.
-    # Python 3.11 is LTS, stable, and has full wheel coverage for all our dependencies.
-    pythonVersion: "3.11.4"
+    # WHY: Python version is pinned to 3.11.4 via .python-version file in repo root.
+    # This is the correct Render-supported mechanism — pythonVersion in render.yaml is not supported.
 
     # Build & Startup Commands
     # WHY --extra-index-url: Pre-installs CPU-only PyTorch to stay well within Render free-tier RAM limits during build.
