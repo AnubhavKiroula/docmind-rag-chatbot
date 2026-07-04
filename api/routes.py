@@ -26,11 +26,34 @@ from db.models import Conversation, Message
 # Create APIRouter instance to register endpoints.
 router = APIRouter()
 
-# Instantiate retriever, llm client, and synthesizer at the module level.
-# This prevents recreating clients, downloading embedding weights, or connecting to databases on every HTTP request.
-retriever = QdrantRetriever()
-llm_client = LLMClient()
-synthesizer = ResponseSynthesizer()
+# Global singleton instances for lazy initialization
+_retriever = None
+_llm_client = None
+_synthesizer = None
+
+
+def get_retriever() -> QdrantRetriever:
+    """Lazy initialization helper for QdrantRetriever singleton."""
+    global _retriever
+    if _retriever is None:
+        _retriever = QdrantRetriever()
+    return _retriever
+
+
+def get_llm_client() -> LLMClient:
+    """Lazy initialization helper for LLMClient singleton."""
+    global _llm_client
+    if _llm_client is None:
+        _llm_client = LLMClient()
+    return _llm_client
+
+
+def get_synthesizer() -> ResponseSynthesizer:
+    """Lazy initialization helper for ResponseSynthesizer singleton."""
+    global _synthesizer
+    if _synthesizer is None:
+        _synthesizer = ResponseSynthesizer()
+    return _synthesizer
 
 
 def get_utc_now_naive():
@@ -90,7 +113,7 @@ async def query_endpoint(request: QueryRequest, db: Session = Depends(get_db)):
     # (2) Fetch matching text chunks and relevance scores from Qdrant using the retriever
     requested_top_k = request.top_k
     try:
-        retrieved_chunks = retriever.retrieve(request.query, top_k=requested_top_k)
+        retrieved_chunks = get_retriever().retrieve(request.query, top_k=requested_top_k)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve contexts from Qdrant database: {str(e)}"
@@ -110,12 +133,12 @@ async def query_endpoint(request: QueryRequest, db: Session = Depends(get_db)):
     # (4) Synthesize the response and calculate confidence scores
     # If the client sent an explicit llm_mode override (e.g. from the UI toggle),
     # we instantiate a custom client, otherwise reuse the default global client.
-    active_llm_client = llm_client
+    active_llm_client = get_llm_client()
     if request.llm_mode:
         active_llm_client = LLMClient(llm_mode=request.llm_mode)
 
     try:
-        synthesis_result = synthesizer.synthesize(
+        synthesis_result = get_synthesizer().synthesize(
             user_question=augmented_question,
             retrieved_chunks=retrieved_chunks,
             llm_client=active_llm_client,
