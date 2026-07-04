@@ -1,0 +1,85 @@
+# GitHub Actions CI Workflow for Automated Quality & Testing Pipeline
+# WHY: Runs automated linter and unit test checks on every commit and pull request to ensure high code quality and prevent regressions.
+
+name: DocMind CI Pipeline
+
+# Triggers CI workflow execution on pushes to main or development feature branches, and on pull requests targeting main.
+on:
+  push:
+    branches:
+      - main
+      - phase/5-docker-cicd-deployment
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Job 1: Static Code Analysis & Formatting Verification
+  # WHY: Ensures all committed Python code adheres strictly to PEP8 standards and Black code style formatting before merging.
+  lint-and-format:
+    name: Lint & Format Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1.1: Checkout repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 1.2: Set up Python 3.10 environment
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Step 1.3: Install code quality tooling (black, flake8)
+      - name: Install Linter & Formatter Tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8
+
+      # Step 1.4: Verify code formatting using Black
+      # WHY --check: Fails the build step if any file is not formatted according to standard Black rules.
+      - name: Run Black Formatting Verification
+        run: black --check . --line-length=100 --exclude='venv|__pycache__'
+
+      # Step 1.5: Run Flake8 static syntax and linting checks
+      - name: Run Flake8 Linter
+        run: flake8 .
+
+  # Job 2: Automated Unit Test Suite Execution
+  # WHY: Executes all 12 unit tests using pytest with mock vector store and LLM clients to guarantee system reliability.
+  test:
+    name: Run Pytest Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 2.1: Checkout repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2.2: Set up Python 3.10 environment
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Step 2.3: Cache pip dependencies for faster CI run times
+      - name: Cache Pip Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Step 2.4: Install production and development dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-dev.txt
+
+      # Step 2.5: Run unit test suite
+      - name: Run Pytest
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest

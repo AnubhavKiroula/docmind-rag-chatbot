@@ -1,0 +1,8 @@
+# Development Dependencies for DocMind
+# Inherits all production dependencies from requirements.txt and adds tools required only for development and CI testing.
+-r requirements.txt
+
+pytest
+httpx
+flake8
+black

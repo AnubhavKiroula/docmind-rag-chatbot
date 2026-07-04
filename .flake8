@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 100
+exclude = venv, __pycache__, .git, build, dist
+per-file-ignores =
+    api/routes.py: E402, E501
+    scripts/ingest.py: E402, E501
+    tests/*: F841, E501
+    *.py: E501

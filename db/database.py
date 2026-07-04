@@ -14,14 +14,13 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///docmind.db"
 # connect_args={"check_same_thread": False} is required ONLY for SQLite.
 # By default, SQLite only allows one thread to access it at a time. FastAPI can make queries on multiple threads,
 # so we disable this check to allow concurrent requests while ensuring safety.
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
 # Create a sessionmaker class which acts as a session factory.
 # autocommit=False ensures transactions must be explicitly committed (safer).
 # autoflush=False prevents automatic flushing of pending data changes before querying.
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 def init_db():
     """
@@ -31,13 +30,14 @@ def init_db():
     print("Initializing SQLite database and tables...")
     Base.metadata.create_all(bind=engine)
 
+
 def get_db():
     """
     Generator function that yields a database session and ensures it gets closed.
-    
+
     A DATABASE SESSION represents a temporary transactional workspace for talking to the database.
     It tracks changes to objects and manages the lifecycle of database connections.
-    
+
     This function uses a generator pattern:
     1. It instantiates a session using SessionLocal().
     2. It yields the session to the calling function (typically a FastAPI route via Depends).

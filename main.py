@@ -1,15 +1,17 @@
-# FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.8+ 
-# based on standard Python type hints. It is asynchronous out-of-the-box and generates interactive 
+# FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.8+
+# based on standard Python type hints. It is asynchronous out-of-the-box and generates interactive
 # Swagger UI documentation automatically.
 #
-# CORS (Cross-Origin Resource Sharing) middleware is required to allow frontend web applications 
-# running on different origins (like a React app on http://localhost:3000) to safely make HTTP requests 
+# CORS (Cross-Origin Resource Sharing) middleware is required to allow frontend web applications
+# running on different origins (like a React app on http://localhost:3000) to safely make HTTP requests
 # to our FastAPI backend on http://localhost:8000. Without this, modern web browsers will block the API requests.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 # We import our registered router containing health check, history, and query endpoints.
 from api.routes import router as api_router
+
 # We import init_db to initialize the database at startup.
 from db.database import init_db
 
@@ -17,8 +19,9 @@ from db.database import init_db
 app = FastAPI(
     title="DocMind RAG Chatbot",
     description="An intelligent retrieval-augmented generation (RAG) backend to chat with your ingested PDF documents.",
-    version="1.0.0"
+    version="1.0.0",
 )
+
 
 @app.on_event("startup")
 def on_startup():
@@ -46,6 +49,7 @@ app.add_middleware(
 
 # Include the endpoints router. All endpoint calls will be routed through this.
 app.include_router(api_router)
+
 
 @app.get("/", summary="Root Endpoint")
 async def root():

@@ -1,12 +1,64 @@
-version: '3.8'
+# Docker Compose Specification for Local Full-Stack Orchestration
+# Services defined: qdrant (vector database), backend (FastAPI API server), frontend (Streamlit Web UI).
 
 services:
+  # Service 1: Local Qdrant Vector Store
+  # WHY: Runs vector database container locally for development and offline testing.
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: qdrant_local
+    container_name: docmind_qdrant
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "6333:6333" # REST API & Dashboard port
+      - "6334:6334" # gRPC API port
     volumes:
-      - ./qdrant_storage:/qdrant/storage
+      # Named volume for persistent vector database storage
+      # WHY: Prevents vector embeddings from being lost when containers are stopped or removed.
+      - qdrant_storage:/qdrant/storage
     restart: unless-stopped
+
+  # Service 2: FastAPI Backend Engine
+  # WHY: Exposes REST API endpoints (/query, /health, /history) for vector search and LLM synthesis.
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    image: docmind-backend:latest
+    container_name: docmind_backend
+    ports:
+      - "8000:8000"
+    # Controls container startup sequence
+    # WHY depends_on: Ensures qdrant database starts before backend initializes vector retriever connection.
+    depends_on:
+      - qdrant
+    env_file:
+      - .env
+    environment:
+      # Service-to-service communication overrides
+      # WHY http://qdrant:6333: Inside Docker networks, containers do not connect via localhost.
+      # Docker's embedded DNS automatically resolves service names (e.g. 'qdrant') to the container's internal IP address.
+      - QDRANT_MODE=local
+      - QDRANT_URL=http://qdrant:6333
+    restart: unless-stopped
+
+  # Service 3: Streamlit Interactive UI
+  # WHY: Provides user web interface for asking questions, viewing sources, and adjusting top_k limits.
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    image: docmind-frontend:latest
+    container_name: docmind_frontend
+    ports:
+      - "8501:8501"
+    # Ensures backend is initialized before frontend UI attempts API requests
+    depends_on:
+      - backend
+    environment:
+      # WHY http://backend:8000: Directs frontend API calls to backend container using Docker internal network DNS.
+      - BACKEND_URL=http://backend:8000
+    restart: unless-stopped
+
+# Named volumes declaration for persistence across container lifecycles
+volumes:
+  qdrant_storage:
+    driver: local

@@ -1,0 +1,20 @@
+# .dockerignore
+# WHY: Prevents temporary, environment-specific, or sensitive files from being sent to the Docker build context.
+# Excluding virtual environments, secret credentials, local databases, and git histories keeps Docker images 
+# minimal in size, speeds up build times, and prevents security credential leaks.
+
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+.git/
+docmind.db
+qdrant_storage/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.DS_Store
+node_modules/
+.streamlit/secrets.toml
