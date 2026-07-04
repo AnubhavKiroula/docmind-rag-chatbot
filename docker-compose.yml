@@ -22,6 +22,7 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+    image: docmind-backend:latest
     container_name: docmind_backend
     ports:
       - "8000:8000"
@@ -45,6 +46,7 @@ services:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
+    image: docmind-frontend:latest
     container_name: docmind_frontend
     ports:
       - "8501:8501"
