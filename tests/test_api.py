@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -66,21 +66,25 @@ def test_root_endpoint():
     assert "Welcome to DocMind" in data["message"]
 
 
-@patch("api.routes.retriever.retrieve")
-@patch("api.routes.synthesizer.synthesize")
-def test_query_endpoint(mock_synthesize, mock_retrieve):
+@patch("api.routes.get_retriever")
+@patch("api.routes.get_synthesizer")
+def test_query_endpoint(mock_get_synthesizer, mock_get_retriever):
     """
     Test POST /query handles requests and saves queries/answers to the SQLite database.
     """
     # Mock retriever output: list of (chunk_text, score)
-    mock_retrieve.return_value = [("Mock document chunk", 0.95)]
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = [("Mock document chunk", 0.95)]
+    mock_get_retriever.return_value = mock_retriever
 
     # Mock synthesizer output: dict
-    mock_synthesize.return_value = {
+    mock_synthesizer = MagicMock()
+    mock_synthesizer.synthesize.return_value = {
         "answer": "This is a mock answer based on the document.",
         "confidence_score": 0.95,
         "sources": ["Mock document chunk"],
     }
+    mock_get_synthesizer.return_value = mock_synthesizer
 
     payload = {"query": "What is the mock question?", "conversation_id": "test-session-123"}
 
@@ -154,18 +158,23 @@ def test_history_endpoint():
     assert response_invalid.json()["detail"] == "Conversation session not found."
 
 
-@patch("api.routes.retriever.retrieve")
-@patch("api.routes.synthesizer.synthesize")
-def test_query_endpoint_with_top_k(mock_synthesize, mock_retrieve):
+@patch("api.routes.get_retriever")
+@patch("api.routes.get_synthesizer")
+def test_query_endpoint_with_top_k(mock_get_synthesizer, mock_get_retriever):
     """
     Test POST /query with an explicit top_k parameter passes the value to the retriever.
     """
-    mock_retrieve.return_value = [("Mock chunk", 0.9)]
-    mock_synthesize.return_value = {
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = [("Mock chunk", 0.9)]
+    mock_get_retriever.return_value = mock_retriever
+
+    mock_synthesizer = MagicMock()
+    mock_synthesizer.synthesize.return_value = {
         "answer": "Mock answer",
         "confidence_score": 0.9,
         "sources": ["Mock chunk"],
     }
+    mock_get_synthesizer.return_value = mock_synthesizer
 
     payload = {"query": "Hello", "top_k": 5}
 
@@ -173,4 +182,4 @@ def test_query_endpoint_with_top_k(mock_synthesize, mock_retrieve):
     assert response.status_code == 200
 
     # Assert retriever.retrieve was called with top_k=5
-    mock_retrieve.assert_called_once_with("Hello", top_k=5)
+    mock_retriever.retrieve.assert_called_once_with("Hello", top_k=5)
