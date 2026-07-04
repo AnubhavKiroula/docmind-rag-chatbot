@@ -1,0 +1,37 @@
+# Render Infrastructure-as-Code (IaC) Blueprint Specification
+# WHY: Declaratively defines cloud hosting infrastructure, runtime environment, build commands, health check endpoints, and required environment variables for automatic deployment on Render.
+
+services:
+  # Web Service 1: DocMind RAG FastAPI Backend Service
+  # WHY: Hosts the backend API engine on Render's free tier web service environment.
+  - type: web
+    name: docmind-backend
+    env: python
+    region: singapore
+    plan: free
+
+    # Build & Startup Commands
+    # WHY --extra-index-url: Pre-installs CPU-only PyTorch to stay well within Render free-tier RAM limits during build.
+    buildCommand: "pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+    # Automated Health Monitoring Endpoint
+    # WHY /health: Render pings this endpoint periodically to verify service availability before routing traffic.
+    healthCheckPath: /health
+
+    # Environment Variables Configuration
+    envVars:
+      - key: QDRANT_MODE
+        value: cloud
+      - key: LLM_MODE
+        value: groq
+      - key: ENVIRONMENT
+        value: production
+
+      # Secret keys requiring manual user input in Render dashboard (sync: false)
+      - key: GROQ_API_KEY
+        sync: false
+      - key: QDRANT_CLOUD_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
