@@ -1,0 +1,36 @@
+# GitHub Actions Continuous Deployment (CD) Workflow
+# WHY: Automatically triggers production deployment on Render whenever the CI pipeline passes on the main branch.
+
+name: DocMind CD Pipeline
+
+# Triggers automatically upon successful completion of the primary CI Pipeline on the main branch.
+on:
+  workflow_run:
+    workflows: ["DocMind CI Pipeline"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  # Job 1: Trigger Webhook Deployment to Render
+  deploy-to-render:
+    name: Trigger Render Production Deploy
+    runs-on: ubuntu-latest
+    # WHY: Ensures deployment only triggers if the preceding CI checks passed successfully.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      # Step 1.1: Trigger Render Deploy Hook via HTTP POST request
+      # WHY: Render deploy hook URL is stored securely in GitHub Secrets (RENDER_DEPLOY_HOOK_URL) and triggers an instant build pull.
+      - name: Trigger Render Deployment Webhook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_URL secret is not set. Deployment trigger skipped."
+          else
+            echo "Sending deploy webhook trigger to Render..."
+            curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+            echo "Deploy hook triggered successfully."
+          fi
