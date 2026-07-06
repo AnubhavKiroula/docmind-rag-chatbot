@@ -241,21 +241,25 @@ async def ingest_endpoint(file: UploadFile = File(...)):
         nodes = chunk_documents(documents, settings.chunk_size, settings.chunk_overlap)
 
         # 3. Load embedding model
-        embed_model = get_embedding_model(settings.embed_model)
+        # WHY no argument: get_embedding_model() reads config internally to select local vs API mode.
+        embed_model = get_embedding_model()
 
         # 4. Build vector index and store in Qdrant
+        # WHY qdrant_url=None, api_key=None: Let build_vector_index resolve Qdrant Cloud settings
+        # dynamically using settings.get_qdrant_connection() instead of forcing local URL.
         build_vector_index(
             nodes=nodes,
             embed_model=embed_model,
-            qdrant_url=settings.qdrant_url,
+            qdrant_url=None,
             collection_name=settings.qdrant_collection_name,
+            api_key=None,
         )
 
         # Reload the retriever's index dynamically so it knows about the new document chunks
-        global retriever
+        global _retriever
         from query.retriever import QdrantRetriever
 
-        retriever = QdrantRetriever()
+        _retriever = QdrantRetriever()
 
         return {
             "status": "success",
