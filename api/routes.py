@@ -226,14 +226,19 @@ async def ingest_endpoint(file: UploadFile = File(...)):
 
     # Run the ingestion steps programmatically
     try:
-        from ingestion.loader import load_documents
         from ingestion.chunker import chunk_documents
         from ingestion.embedder import get_embedding_model
         from ingestion.store import build_vector_index
         from config.settings import settings
 
-        # 1. Load documents
-        documents = load_documents(UPLOAD_DIR)
+        # 1. Load only the uploaded document (instead of the entire sample directory to prevent timeouts)
+        from llama_index.core import SimpleDirectoryReader
+        from ingestion.loader import CustomPDFReader
+
+        reader = SimpleDirectoryReader(
+            input_files=[file_path], file_extractor={".pdf": CustomPDFReader()}
+        )
+        documents = reader.load_data()
         if not documents:
             raise ValueError("No documents found after processing upload.")
 

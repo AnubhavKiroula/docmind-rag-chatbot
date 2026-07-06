@@ -11,9 +11,9 @@ DocMind is an enterprise-grade Retrieval-Augmented Generation (RAG) chatbot desi
 
 ## 🌐 Live Cloud Demo & Architecture
 
-- **Streamlit Web UI**: [https://docmind-rag-chatbot.streamlit.app](https://docmind-rag-chatbot.streamlit.app)
-- **FastAPI Backend (Render)**: [https://docmind-backend.onrender.com](https://docmind-backend.onrender.com)
-- **FastAPI Interactive API Docs**: [https://docmind-backend.onrender.com/docs](https://docmind-backend.onrender.com/docs)
+- **Streamlit Web UI**: [https://docmind-bot-rag.streamlit.app](https://docmind-bot-rag.streamlit.app)
+- **FastAPI Backend (Render)**: [https://docmind-backend-92jf.onrender.com](https://docmind-backend-92jf.onrender.com)
+- **FastAPI Interactive API Docs**: [https://docmind-backend-92jf.onrender.com/docs](https://docmind-backend-92jf.onrender.com/docs)
 - **Vector Database**: Qdrant Cloud Free Tier Cluster
 
 ---
