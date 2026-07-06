@@ -22,7 +22,8 @@ def get_embedding_model():
     if settings.embed_mode.lower() == "api":
         # WHY HuggingFaceInferenceAPIEmbedding: Calls HuggingFace's hosted inference endpoints instead
         # of loading the model locally. This keeps server RAM usage very low (no PyTorch model in memory).
-        from llama_index.embeddings.huggingface import HuggingFaceInferenceAPIEmbedding
+        # We import from llama_index.embeddings.huggingface_api to resolve asyncio loop conflicts in FastAPI.
+        from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
 
         print(f"[EmbedMode=api] Using HuggingFace Inference API for model: {settings.embed_model}")
         return HuggingFaceInferenceAPIEmbedding(
