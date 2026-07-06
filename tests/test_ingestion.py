@@ -96,6 +96,29 @@ def test_get_embedding_model():
         assert model == "mock_model"
 
 
+def test_get_embedding_model_api():
+    """
+    Verifies that get_embedding_model initializes the HuggingFaceInferenceAPIEmbedding class in API mode.
+    WHY mock embed_mode=api: Forces the API branch to be taken.
+    """
+    with patch("ingestion.embedder.settings") as mock_settings, patch(
+        "llama_index.embeddings.huggingface_api.HuggingFaceInferenceAPIEmbedding"
+    ) as mock_hf_api:
+        # Configure settings mock to select API embedding mode
+        mock_settings.embed_mode = "api"
+        mock_settings.embed_model = "sentence-transformers/all-MiniLM-L6-v2"
+        mock_settings.hf_token = "dummy_hf_token"
+        mock_hf_api.return_value = "mock_api_model"
+
+        model = get_embedding_model()
+
+        mock_hf_api.assert_called_once_with(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            token="dummy_hf_token",
+        )
+        assert model == "mock_api_model"
+
+
 def test_build_vector_index():
     """
     Verifies that build_vector_index properly connects to Qdrant, registers
