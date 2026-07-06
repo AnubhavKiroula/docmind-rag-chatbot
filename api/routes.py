@@ -235,9 +235,9 @@ async def ingest_endpoint(file: UploadFile = File(...)):
         # 1. Load only the uploaded document (instead of the entire sample directory to prevent timeouts)
         from llama_index.core import SimpleDirectoryReader
         from ingestion.loader import CustomPDFReader
+
         reader = SimpleDirectoryReader(
-            input_files=[file_path],
-            file_extractor={".pdf": CustomPDFReader()}
+            input_files=[file_path], file_extractor={".pdf": CustomPDFReader()}
         )
         documents = reader.load_data()
         if not documents:
