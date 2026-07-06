@@ -226,7 +226,6 @@ async def ingest_endpoint(file: UploadFile = File(...)):
 
     # Run the ingestion steps programmatically
     try:
-        from ingestion.loader import load_documents
         from ingestion.chunker import chunk_documents
         from ingestion.embedder import get_embedding_model
         from ingestion.store import build_vector_index
