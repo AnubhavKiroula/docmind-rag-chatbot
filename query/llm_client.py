@@ -109,7 +109,7 @@ class LLMClient:
         if not self.groq_client:
             raise ValueError("Groq client not initialized. Check GROQ_API_KEY.")
 
-        print("Sending prompt to Groq API (model: llama-3.1-8b-instant)...")
+        print(f"Sending prompt to Groq API (model: {settings.groq_model})...")
         # Request completion from Groq API
         chat_completion = self.groq_client.chat.completions.create(
             messages=[
@@ -118,7 +118,7 @@ class LLMClient:
                     "content": prompt,
                 }
             ],
-            model="llama-3.1-8b-instant",  # Standard active fast model on Groq
+            model=settings.groq_model,  # Configurable via GROQ_MODEL; Groq retires models over time
             temperature=0.2,  # Keep temp low for deterministic factual responses
             max_tokens=1024,
         )

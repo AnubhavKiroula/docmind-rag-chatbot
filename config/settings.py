@@ -100,6 +100,15 @@ class Settings(BaseModel):
         description="API key for Groq Cloud. Required only if using Groq cloud inference.",
     )
 
+    # Groq Cloud model name
+    # WHY configurable: this was previously hardcoded to 'llama-3.1-8b-instant'. Groq retires
+    # models without notice, which breaks generation at runtime with a 404 and needs a code
+    # change to fix. Reading it from the environment lets the model be swapped via config.
+    groq_model: str = Field(
+        default=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
+        description="The model name requested from the Groq Cloud API.",
+    )
+
     # Local Ollama LLM Model name
     local_llm_model: str = Field(
         default=os.getenv("LOCAL_LLM_MODEL", "llama3.2"),
