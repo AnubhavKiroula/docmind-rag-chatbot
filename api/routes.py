@@ -1,7 +1,6 @@
 import uuid
 import datetime
 import os
-import shutil
 
 # We import Depends, UploadFile, File from FastAPI for database session and file uploading
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
@@ -10,6 +9,7 @@ from sqlalchemy.orm import Session
 # Project root paths for file saving
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_DIR = os.path.join(PROJECT_ROOT, "data", "sample")
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 # We import our request and response schemas from models.py for data validation.
 from api.models import QueryRequest, QueryResponse, SourceChunk
@@ -207,8 +207,10 @@ async def ingest_endpoint(file: UploadFile = File(...)):
     POST endpoint that accepts a PDF file upload, saves it to the ingestion folder,
     and runs the parsing, chunking, and embedding ingestion pipeline programmatically.
     """
-    # Verify file extension is PDF
-    if not file.filename.lower().endswith(".pdf"):
+    # WHY basename: the client controls file.filename, so "../../x.pdf" would otherwise escape
+    # UPLOAD_DIR. We normalise Windows separators first so the check also holds on Linux.
+    safe_name = os.path.basename((file.filename or "").replace("\\", "/"))
+    if not safe_name.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=400, detail="Unsupported file format. Only PDF files are supported."
         )
@@ -216,13 +218,26 @@ async def ingest_endpoint(file: UploadFile = File(...)):
     # Ensure upload directory exists
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-    # Save the file to the ingestion folder
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    # Save the file to the ingestion folder, enforcing a size cap while streaming to disk
+    file_path = os.path.join(UPLOAD_DIR, safe_name)
+    too_large = False
     try:
+        written = 0
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while chunk := file.file.read(1024 * 1024):
+                written += len(chunk)
+                if written > MAX_UPLOAD_BYTES:
+                    too_large = True
+                    break
+                buffer.write(chunk)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
+    if too_large:
+        os.remove(file_path)
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum upload size is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
 
     # Run the ingestion steps programmatically
     try:
@@ -268,9 +283,9 @@ async def ingest_endpoint(file: UploadFile = File(...)):
 
         return {
             "status": "success",
-            "filename": file.filename,
+            "filename": safe_name,
             "chunks_created": len(nodes),
-            "message": f"Successfully ingested '{file.filename}' and stored {len(nodes)} chunks in Qdrant.",
+            "message": f"Successfully ingested '{safe_name}' and stored {len(nodes)} chunks in Qdrant.",
         }
     except Exception as e:
         # Clean up the file if ingestion failed

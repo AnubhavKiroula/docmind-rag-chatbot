@@ -104,3 +104,30 @@ def test_llm_client_fallback():
                 # Verify Groq completion API was indeed called as fallback
                 mock_groq.chat.completions.create.assert_called_once()
                 assert result == "Response from Groq Cloud API"
+
+
+def test_llm_client_uses_configured_groq_model():
+    """
+    Verifies that _generate_groq requests the model named in settings.groq_model rather than
+    a hardcoded one. Regression guard: the model was previously hardcoded to
+    'llama-3.1-8b-instant', which Groq retired, causing a runtime 404 in production.
+    """
+    with patch("query.llm_client.Groq") as mock_groq_cls:
+        mock_groq = MagicMock()
+        mock_groq_cls.return_value = mock_groq
+
+        mock_chat = MagicMock()
+        mock_groq.chat.completions.create.return_value = mock_chat
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Groq answer"
+        mock_chat.choices = [mock_choice]
+
+        with patch("query.llm_client.settings") as mock_settings:
+            mock_settings.llm_mode = "groq"
+            mock_settings.groq_api_key = "gsk_dummy_api_key"
+            mock_settings.groq_model = "openai/gpt-oss-20b"
+
+            result = LLMClient().generate("prompt")
+
+        assert result == "Groq answer"
+        assert mock_groq.chat.completions.create.call_args.kwargs["model"] == "openai/gpt-oss-20b"

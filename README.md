@@ -72,7 +72,7 @@ DocMind allows users to upload PDF documents and have natural, context-grounded 
                                        v (answer text)              v
                             +---------------------+      +----------------------+
                             |    FastAPI Response | <--- |  Groq Cloud API      |
-                            | (JSON Response API) |      | (llama-3.1-8b-instant)
+                            | (JSON Response API) |      | (GROQ_MODEL)         |
                             +---------------------+      +----------------------+
 ```
 
@@ -88,7 +88,7 @@ DocMind allows users to upload PDF documents and have natural, context-grounded 
 | **Qdrant** | Vector database (Supports both local Docker and Qdrant Cloud free tier). |
 | **SQLite + SQLAlchemy** | Lightweight file-based persistent storage for conversation history. |
 | **all-MiniLM-L6-v2** | Pre-trained Sentence Transformers embedding model running on CPU. |
-| **Groq API** | Ultra-fast cloud LLM completions (`llama-3.1-8b-instant`). |
+| **Groq API** | Ultra-fast cloud LLM completions (model set by `GROQ_MODEL`, default `openai/gpt-oss-20b`). |
 | **Ollama** | Local LLM inference engine (`llama3.2`). |
 | **Docker & Docker Compose** | Multi-stage containerization and stack orchestration. |
 | **GitHub Actions** | Automated CI/CD pipeline for linting, unit testing, and deployment. |
@@ -132,6 +132,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 | `QDRANT_COLLECTION_NAME` | No | `docmind_docs` | Target vector collection name. |
 | `LLM_MODE` | Yes | `groq` | Default LLM provider (`groq` or `ollama`). |
 | `GROQ_API_KEY` | Cloud | - | API key for Groq Cloud LLM inference. |
+| `GROQ_MODEL` | No | `openai/gpt-oss-20b` | Groq model name. Groq retires models periodically. |
+| `EMBED_MODE` | No | `local` | `local` loads the model into RAM; `api` uses the HF Inference API. |
+| `HF_TOKEN` | Cloud | - | HuggingFace token. Required when `EMBED_MODE=api` (needs Inference credits). |
 | `OLLAMA_BASE_URL` | Local | `http://localhost:11434` | Ollama service endpoint. |
 | `OLLAMA_MODEL` | Local | `llama3.2` | Ollama target model. |
 | `EMBED_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Embedding model. |
@@ -145,7 +148,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - **Continuous Integration (`.github/workflows/ci.yml`)**:
   - Automatically triggered on push to `main` and `phase/5-docker-cicd-deployment`, and PRs to `main`.
   - **Job 1 (Lint & Format)**: Installs `black` and `flake8`, executes `black --check . --line-length=100` and `flake8 .`.
-  - **Job 2 (Unit Testing)**: Installs dev dependencies and runs `pytest` (12 unit tests).
+  - **Job 2 (Unit Testing)**: Installs dev dependencies and runs `pytest`.
 - **Continuous Deployment (`.github/workflows/cd.yml`)**:
   - Automatically triggered upon successful completion of `DocMind CI Pipeline` on `main`.
   - Sends a secure POST request to the Render Deploy Webhook (`RENDER_DEPLOY_HOOK_URL`), triggering instant production zero-downtime deployment.
@@ -161,7 +164,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - **Phase 3: Web UI (Streamlit) & FastAPI Backend with SQLite Persistence**
   - Created FastAPI REST API (`/health`, `/query`, `/conversations`), Streamlit UI, and SQLAlchemy SQLite history persistence.
 - **Phase 4: Production Polish, Security & Test Coverage**
-  - Implemented rate limiting (`slowapi`), CORS middleware, PDF upload endpoint, and 12 comprehensive unit tests (`pytest`).
+  - Implemented CORS middleware, PDF upload endpoint (filename sanitisation + 20 MB size cap), and unit tests (`pytest`). Rate limiting is not implemented yet.
 - **Phase 5: Containerization, CI/CD Automation & Free Cloud Deployment**
   - Created multi-stage Dockerfiles (`docker/backend.Dockerfile`, `docker/frontend.Dockerfile`), `docker-compose.yml`, `docker-compose.prod.yml`, GitHub Actions CI/CD workflows, Qdrant Cloud integration, Procfile, `render.yaml`, and deployed live production demos.
 
