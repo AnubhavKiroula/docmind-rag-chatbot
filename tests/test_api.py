@@ -183,3 +183,40 @@ def test_query_endpoint_with_top_k(mock_get_synthesizer, mock_get_retriever):
 
     # Assert retriever.retrieve was called with top_k=5
     mock_retriever.retrieve.assert_called_once_with("Hello", top_k=5)
+
+
+def test_ingest_rejects_non_pdf():
+    """
+    Test POST /ingest returns 400 for a non-PDF upload.
+    """
+    response = client.post("/ingest", files={"file": ("notes.txt", b"hello", "text/plain")})
+    assert response.status_code == 400
+
+
+def test_ingest_rejects_oversized_file(tmp_path):
+    """
+    Test POST /ingest returns 413 when the upload exceeds MAX_UPLOAD_BYTES,
+    and that no partial file is left behind.
+    """
+    with patch("api.routes.UPLOAD_DIR", str(tmp_path)), patch("api.routes.MAX_UPLOAD_BYTES", 10):
+        response = client.post(
+            "/ingest", files={"file": ("big.pdf", b"x" * 100, "application/pdf")}
+        )
+    assert response.status_code == 413
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_ingest_filename_cannot_escape_upload_dir(tmp_path):
+    """
+    Test that a traversal filename is reduced to its basename and saved inside UPLOAD_DIR.
+    The pipeline itself fails on the fake PDF (expected 500). We disable the route's failure
+    cleanup (os.remove) so the saved file survives and its location can be asserted.
+    """
+    upload_dir = tmp_path / "uploads"
+    with patch("api.routes.UPLOAD_DIR", str(upload_dir)), patch("api.routes.os.remove"):
+        client.post(
+            "/ingest",
+            files={"file": ("../../evil.pdf", b"%PDF-1.4 not a real pdf", "application/pdf")},
+        )
+    assert (upload_dir / "evil.pdf").exists()
+    assert not (tmp_path.parent / "evil.pdf").exists()
